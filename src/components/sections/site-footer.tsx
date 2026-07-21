@@ -20,6 +20,8 @@ export function SiteFooter() {
               A volunteer-run practice club. Free forever, run by people who
               remember what it was like to be starting out.
             </p>
+            {/*   <p className="stamp-label mt-6 text-panel-fg/70">Get in touch</p> */}
+            {/* <ContactIconRow className="mt-3" /> */}
           </div>
 
           <div className="flex flex-wrap gap-12 sm:gap-14">
