@@ -23,6 +23,7 @@ const SITE = "https://mockclub.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
+  alternates: { canonical: "/" },
   title: {
     default: "MockClub — Free mock interviews with real people",
     template: "%s · MockClub",

@@ -2,6 +2,9 @@ import Link from "next/link";
 import { ArrowUpRight, Check, Globe, Minus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { StructuredData } from "@/components/structured-data";
+import { FAQ } from "@/content/faq";
+import { TRACKS } from "@/content/tracks";
 import {
   Accordion,
   AccordionContent,
@@ -9,16 +12,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { LanguageMarquee } from "@/components/language-marquee";
+import { Logo } from "@/components/logo";
 import { MemberCard } from "@/components/member-card";
-
-const TRACKS = [
-  { name: "Software Engineering", note: "DSA, systems, debugging, take-homes" },
-  { name: "Product", note: "Cases, metrics, prioritisation, exec readouts" },
-  { name: "Design", note: "Portfolio walkthrough, critique, whiteboard" },
-  { name: "Data & ML", note: "SQL, stats, modelling, case studies" },
-  { name: "Marketing & Growth", note: "Channel strategy, campaign teardowns" },
-  { name: "Founders", note: "Pitch practice, investor Q&A, hard questions" },
-];
 
 const STEPS = [
   {
@@ -38,36 +33,18 @@ const STEPS = [
   },
 ];
 
-const FAQ = [
-  {
-    q: "Is it actually free? What's the catch?",
-    a: "It is free, and it always will be. There is no payment code in this product and there never will be — no card, no credits you can buy, no premium tier waiting behind a curtain. Everyone interviewing here is a volunteer giving an hour because someone once did it for them. Hosting is covered by donations and company sponsorship, never by you.",
-  },
-  {
-    q: "Who are the interviewers?",
-    a: "People who currently work in the field and have sat on the hiring side of the table — engineers, PMs, designers, marketers, founders. Every applicant is reviewed by a moderator before they appear, and most verify a work email domain. You will see their background, their track, and their reviews before you book.",
-  },
-  {
-    q: "Do you use AI to run the interviews?",
-    a: "No. Not now, not later. Every session is one human talking to another human. AI interview tools already exist and we are not one of them — the entire point of this club is that a person who has done the job gives you their time and their honest read.",
-  },
-  {
-    q: "What languages can I interview in?",
-    a: "Whichever one your real interview will be in. Language is a matching filter, not an afterthought — you pick it when you book, and we only show you interviewers who speak it. Most global platforms are English-only; that has never matched how hiring actually works.",
-  },
-  {
-    q: "Can I be an interviewer?",
-    a: "Please do — this only works if enough people give an hour. You set your own capacity, so it can be one session a month. We hand you a levelled question pack and a rubric, so your prep cost is zero and your total commitment is exactly the hour you agreed to.",
-  },
-  {
-    q: "What happens if someone doesn't show up?",
-    a: "Both people mark attendance, and no-shows carry real consequences on a rolling window — warnings first, then booking limits, then a break from the platform. Volunteer time is the scarcest thing here and we protect it. There is always an appeal path to a human moderator.",
-  },
-];
-
 export default function Home() {
   return (
     <>
+      <StructuredData />
+
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-[100] focus:bg-ink focus:px-4 focus:py-2 focus:text-paper"
+      >
+        Skip to content
+      </a>
+
       {/* ── Status bar ─────────────────────────────────────────── */}
       <div className="border-b border-ink/15 bg-ink text-paper">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-5 py-2 sm:px-8">
@@ -85,7 +62,8 @@ export default function Home() {
       {/* ── Nav ────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 border-b border-ink/15 bg-paper/85 backdrop-blur-sm">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
-          <Link href="/" className="group flex items-baseline gap-2">
+          <Link href="/" className="group flex items-center gap-2.5">
+            <Logo className="size-8 shrink-0 text-ink transition-transform group-hover:-rotate-6" />
             <span className="display text-2xl font-semibold tracking-tight">
               MockClub
             </span>
@@ -120,7 +98,7 @@ export default function Home() {
         </nav>
       </header>
 
-      <main className="flex-1">
+      <main id="main" className="flex-1">
         {/* ── Hero ─────────────────────────────────────────────── */}
         <section className="relative overflow-hidden border-b border-ink/15">
           <div
@@ -491,7 +469,10 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8">
           <div className="flex flex-wrap items-start justify-between gap-10">
             <div className="max-w-sm">
-              <p className="display text-3xl font-semibold">MockClub</p>
+              <p className="flex items-center gap-3">
+                <Logo className="size-10 shrink-0 text-paper" />
+                <span className="display text-3xl font-semibold">MockClub</span>
+              </p>
               <p className="display mt-3 text-2xl font-semibold text-vermilion">
                 Made by devs, for everyone.
               </p>
