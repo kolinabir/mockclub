@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Archivo, Fragment_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -62,12 +63,20 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${fraunces.variable} ${archivo.variable} ${fragmentMono.variable}`}
     >
       {/* overflow-x-clip (not -hidden) — `hidden` would make <body> a scroll
           container and break both page scrolling and the sticky header. */}
       <body className="grain flex min-h-screen flex-col overflow-x-clip">
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

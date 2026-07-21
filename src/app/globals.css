@@ -140,6 +140,9 @@
   --color-paper: var(--paper);
   --color-ink: var(--ink);
   --color-vermilion: var(--vermilion);
+  --color-vermilion-deep: var(--vermilion-deep);
+  --color-vermilion-strong: var(--vermilion-strong);
+  --color-vermilion-light: var(--vermilion-light);
   --color-olive: var(--olive);
   --color-rule: var(--rule);
 }
@@ -150,6 +153,16 @@
   --ink: oklch(0.185 0.012 76);
   --ink-soft: oklch(0.44 0.014 76);
   --vermilion: oklch(0.585 0.196 32);
+  /* Small text (<24px) needs 4.5:1; full-strength vermilion only reaches 4.06
+     on paper. Use this for labels; keep --vermilion for fills and display type. */
+  --vermilion-deep: oklch(0.505 0.19 33);
+  /* Fixed dark red, deliberately NOT overridden in .dark. `bg-ink` panels
+     invert to LIGHT surfaces in dark mode, so vermilion inside them needs a
+     dark red in both themes — a theme-flipping token gets it backwards. */
+  --vermilion-strong: oklch(0.505 0.19 33);
+  /* Mirror of --vermilion-strong: fixed LIGHT red for small text on ink
+     surfaces. Also not overridden in .dark. */
+  --vermilion-light: oklch(0.715 0.165 37);
   --olive: oklch(0.435 0.062 148);
   --rule: oklch(0.185 0.012 76 / 0.16);
 
@@ -180,6 +193,7 @@
   --ink: oklch(0.936 0.014 84);
   --ink-soft: oklch(0.70 0.016 80);
   --vermilion: oklch(0.672 0.176 34);
+  --vermilion-deep: oklch(0.775 0.145 40);
   --olive: oklch(0.640 0.086 150);
   --rule: oklch(0.936 0.014 84 / 0.18);
 
@@ -246,14 +260,14 @@
     font-family: var(--font-stamp), ui-monospace, monospace;
     text-transform: uppercase;
     letter-spacing: 0.22em;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
   }
 
   /* Rubber-stamp badge */
   .stamp {
     font-family: var(--font-stamp), monospace;
     border: 2px solid var(--vermilion);
-    color: var(--vermilion);
+    color: var(--vermilion-deep);
     text-transform: uppercase;
     letter-spacing: 0.16em;
     opacity: 0.92;

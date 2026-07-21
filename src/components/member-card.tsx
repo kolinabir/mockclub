@@ -1,3 +1,4 @@
+import { Logo } from "@/components/logo";
 import { Separator } from "@/components/ui/separator";
 
 const ROWS: [string, string][] = [
@@ -57,10 +58,13 @@ export function MemberCard() {
             </div>
 
             {/* Rubber stamp — the thing people remember */}
-            <div className="stamp -rotate-[14deg] px-3.5 py-2.5 text-center leading-tight">
-              <p className="text-[0.6rem] font-bold">Real</p>
-              <p className="text-[0.6rem] font-bold">Humans</p>
-              <p className="mt-1 text-[0.5rem] opacity-80">NEVER AI</p>
+            <div className="flex -rotate-[14deg] items-center gap-2.5">
+              <Logo className="size-9 shrink-0 text-ink" title="" />
+              <div className="stamp px-2.5 py-2 text-center leading-tight">
+                <p className="text-[0.625rem] font-bold">Real</p>
+                <p className="text-[0.625rem] font-bold">Humans</p>
+                <p className="mt-1 text-[0.5625rem]">NEVER AI</p>
+              </div>
             </div>
           </div>
         </div>
