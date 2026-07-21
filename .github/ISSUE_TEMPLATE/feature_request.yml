@@ -1,0 +1,25 @@
+name: ✨ Feature request
+description: Suggest an improvement
+labels: ["enhancement", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before you file: this project will never add **payments** or **AI-run sessions**.
+        Those aren't backlog items, they're out of scope by design.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the problem, not the solution.
+    validations: { required: true }
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen?
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who is this for?
+      options: [Candidates, Interviewers, Moderators/Admins, Everyone]
+    validations: { required: true }

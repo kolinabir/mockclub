@@ -1,0 +1,33 @@
+name: 🐛 Bug report
+description: Something isn't working
+labels: ["bug", "needs triage"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you expected, and what happened instead.
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to...
+        2. Click...
+        3. See...
+    validations: { required: true }
+  - type: input
+    id: timezone
+    attributes:
+      label: Your timezone (IANA id)
+      description: e.g. Asia/Dhaka. A surprising number of bugs here are timezone bugs.
+  - type: input
+    id: env
+    attributes:
+      label: Browser / OS
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, console errors, logs.

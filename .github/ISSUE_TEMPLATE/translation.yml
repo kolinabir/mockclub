@@ -1,0 +1,25 @@
+name: 🌍 Add or fix a translation
+description: Help make MockClub usable in your language
+labels: ["i18n", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: "This needs no JavaScript — it's one of the most useful things you can do here."
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      placeholder: বাংলা (bn), Español (es)...
+    validations: { required: true }
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What are you doing?
+      options: [Adding a new language, Fixing existing translations, Adding RTL support]
+    validations: { required: true }
+  - type: checkboxes
+    id: rtl
+    attributes:
+      label: Script direction
+      options:
+        - label: This language is right-to-left (Arabic, Urdu, Hebrew, Farsi)
