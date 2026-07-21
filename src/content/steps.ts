@@ -14,6 +14,6 @@ export const STEPS: Step[] = [
   {
     n: "03",
     title: "Get feedback you can act on",
-    body: "Not a vibe check. A scored rubric, written strengths, concrete gaps, and an honest would-I-pass-you call from someone who runs these interviews for real.",
+    body: "Not a vibe check. Honest, structured feedback — written strengths, concrete gaps, and a real would-I-pass-you call from someone who runs these interviews for real.",
   },
 ];

@@ -59,7 +59,7 @@ export function Hero() {
             <Button
               asChild
               size="lg"
-              className="press press-hover h-13 rounded-none bg-vermilion px-8 text-base font-medium text-white hover:bg-vermilion dark:bg-vermilion-strong"
+              className="press press-hover h-13 rounded-none bg-vermilion-strong px-8 text-base font-medium text-chalk hover:bg-vermilion-strong"
             >
               <Link href="#join">
                 Join the club

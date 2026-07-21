@@ -1,10 +1,13 @@
 import { LanguageMarquee } from "@/components/language-marquee";
+import { SmoothScroll } from "@/components/smooth-scroll";
 import { StructuredData } from "@/components/structured-data";
 import { FaqSection } from "@/components/sections/faq-section";
 import { Hero } from "@/components/sections/hero";
 import { HowItWorks } from "@/components/sections/how-it-works";
 import { Join } from "@/components/sections/join";
+import { Sustainability } from "@/components/sections/sustainability";
 import { SiteFooter } from "@/components/sections/site-footer";
+import { SessionFlow } from "@/components/sections/session-flow";
 import { SiteHeader } from "@/components/sections/site-header";
 import { StatusBar } from "@/components/sections/status-bar";
 import { TheGap } from "@/components/sections/the-gap";
@@ -15,6 +18,7 @@ export default function Home() {
   return (
     <>
       <StructuredData />
+      <SmoothScroll />
 
       <a
         href="#main"
@@ -31,8 +35,10 @@ export default function Home() {
         <LanguageMarquee />
         <TheGap />
         <HowItWorks />
+        <SessionFlow />
         <Tracks />
         <Volunteer />
+        <Sustainability />
         <FaqSection />
         <Join />
       </main>

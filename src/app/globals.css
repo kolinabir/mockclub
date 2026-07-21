@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "lenis/dist/lenis.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -143,6 +144,9 @@
   --color-vermilion-deep: var(--vermilion-deep);
   --color-vermilion-strong: var(--vermilion-strong);
   --color-vermilion-light: var(--vermilion-light);
+  --color-chalk: var(--chalk);
+  --color-panel: var(--panel);
+  --color-panel-fg: var(--panel-fg);
   --color-olive: var(--olive);
   --color-rule: var(--rule);
 }
@@ -163,6 +167,19 @@
   /* Mirror of --vermilion-strong: fixed LIGHT red for small text on ink
      surfaces. Also not overridden in .dark. */
   --vermilion-light: oklch(0.715 0.165 37);
+  /* Warm off-white for text on vermilion fills. Pure #fff is too harsh in
+     dark mode and breaks the paper palette; this is fixed across themes so
+     the pairing stays constant. */
+  --chalk: oklch(0.968 0.009 85);
+  /* Inverted panels (status bar, volunteer band, footer, primary buttons).
+     In light mode these are ink-on-paper. In dark mode they must NOT flip to
+     a bright surface — they become a slightly ELEVATED dark shade instead, so
+     the page stays dark throughout. */
+  --panel: oklch(0.185 0.012 76);
+  --panel-fg: oklch(0.955 0.014 84);
+  /* Letterpress offset shadow. Must go DARKER than the surface in dark mode —
+     using --ink turns it into a bright cream slab. */
+  --press-shadow: oklch(0.185 0.012 76);
   --olive: oklch(0.435 0.062 148);
   --rule: oklch(0.185 0.012 76 / 0.16);
 
@@ -194,6 +211,9 @@
   --ink-soft: oklch(0.70 0.016 80);
   --vermilion: oklch(0.672 0.176 34);
   --vermilion-deep: oklch(0.775 0.145 40);
+  --panel: oklch(0.238 0.013 74);
+  --panel-fg: oklch(0.936 0.014 84);
+  --press-shadow: oklch(0.098 0.008 74);
   --olive: oklch(0.640 0.086 150);
   --rule: oklch(0.936 0.014 84 / 0.18);
 
@@ -281,7 +301,7 @@
   /* Letterpress card with hard offset shadow */
   .press {
     border: 1.5px solid var(--ink);
-    box-shadow: 5px 5px 0 0 var(--ink);
+    box-shadow: 5px 5px 0 0 var(--press-shadow);
     transition: box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
                 transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
@@ -323,4 +343,15 @@
   .rise, .marquee-track { animation: none !important; }
   html { scroll-behavior: auto; }
   .press-hover:hover { transform: none; }
+}
+
+@layer components {
+  /* Scroll-snap track: keep the swipe, hide the bar. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

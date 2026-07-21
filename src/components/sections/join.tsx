@@ -32,7 +32,7 @@ export function Join() {
             <Button
               type="submit"
               size="lg"
-              className="press press-hover h-13 rounded-none bg-ink px-8 text-base font-medium text-paper hover:bg-ink"
+              className="press press-hover h-13 rounded-none bg-panel px-8 text-base font-medium text-panel-fg hover:bg-panel"
             >
               Reserve my seat
             </Button>

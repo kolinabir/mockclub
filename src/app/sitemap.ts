@@ -10,5 +10,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // ranking than not having them at all.
   return [
     { url: SITE_URL, lastModified: now, changeFrequency: "weekly", priority: 1 },
+    {
+      url: `${SITE_URL}/about`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
   ];
 }

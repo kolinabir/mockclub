@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     template: "%s · MockClub",
   },
   description:
-    "Made by devs, for everyone. A volunteer-run club where working professionals give an hour to practise interviews with people breaking in. Free forever. Real humans, never AI. Any language, any timezone.",
+    "Free mock interviews with real people. Working professionals volunteer an hour to help you practise — any role, any language. Free forever, never AI.",
   keywords: [
     "free mock interview",
     "mock interview practice",
@@ -68,6 +68,13 @@ export default function RootLayout({
     >
       {/* overflow-x-clip (not -hidden) — `hidden` would make <body> a scroll
           container and break both page scrolling and the sticky header. */}
+      <head>
+        {/* Reveal starts at opacity-0 and is shown by JS. Without this, a
+            failed or blocked script would leave the whole page invisible. */}
+        <noscript>
+          <style>{`[data-reveal]{opacity:1!important;transform:none!important}`}</style>
+        </noscript>
+      </head>
       <body className="grain flex min-h-screen flex-col overflow-x-clip">
         <ThemeProvider
           attribute="class"

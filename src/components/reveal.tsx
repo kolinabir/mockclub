@@ -55,6 +55,7 @@ export function Reveal({
       ref={(node: HTMLElement | null) => {
         ref.current = node;
       }}
+      data-reveal=""
       style={{ transitionDelay: `${delay}ms` }}
       className={cn(
         "transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",

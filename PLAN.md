@@ -134,6 +134,7 @@ Bundling it into signup tanks conversion and complicates Google OAuth verificati
         |"cancelled_by_candidate"|"cancelled_by_interviewer"
         |"rejected"|"expired"|"no_show_candidate"|"no_show_interviewer",
   rescheduledFromId: null,
+  coInterviewerIds: [],   // panel: up to 2 MORE interviewers (see note below)
   googleEventId, meetUrl,
   attendedCandidate: null, attendedInterviewer: null }  // marked independently
 
@@ -149,6 +150,21 @@ Bundling it into signup tanks conversion and complicates Google OAuth verificati
 // platformConfig — single doc, the admin panel writes here
 { _id: "singleton", phase, bookingEnabled, enabledTracks, ... }
 ```
+
+### Panels — up to 3 interviewers per session
+
+A session can have **1 to 3 interviewers** (a lead plus up to two co-interviewers),
+never more. Model it so the concurrency guarantee is untouched:
+
+- The **slot and the atomic claim stay keyed on the single lead `interviewerId`** — the
+  one whose availability created the slot. All the `findOneAndUpdate` and unique-index
+  logic below is unchanged.
+- Co-interviewers are just `coInterviewerIds: []` on the booking (max length 2, enforced
+  in app code). They are invited, not claimed against — a co-interviewer's own calendar
+  conflict is a soft warning, not a hard block, because the lead owns the slot.
+- **4 people max in the room** (3 interviewers + 1 candidate). This is exactly why the
+  video plan is Jitsi/Workspace, not free consumer Meet — a 4-person call trips Google's
+  60-minute limit on consumer accounts (see §6). Jitsi self-hosted has no such cap.
 
 ### Preventing double-booking in MongoDB
 
@@ -557,7 +573,8 @@ Slot search (track × language × timezone) + atomic claim booking + Google Cale
 with Meet link + booking state machine + email.
 
 **M4 — The product (Phase 3)**
-Rubric feedback forms + question packs per track/level + reviews + reputation stats.
+Feedback forms (free-form — interviewers run sessions their own way; we do NOT
+ship mandated question packs or a fixed rubric) + reviews + reputation stats.
 
 **M5 — Scale**
 i18n UI, credits/reciprocity, no-show enforcement, public interviewer profiles,
@@ -571,17 +588,23 @@ because you'll know your actual supply.
 
 ## 11. Two things that will decide success (neither is code)
 
-1. **Reduce the volunteer's marginal cost to exactly 60 minutes.** Volunteers churn because
-   preparing a good interview is ~30 min of unpaid work on top of the hour. **Ship levelled
-   question packs with expected signals, per track.** Nobody in this market does this. The
-   rubric doubles as your quality floor.
+1. **Keep the volunteer's commitment to exactly the hour they agreed to.** The product
+   promise is *freedom*, not "we do your prep": interviewers run each session however they
+   would run a real interview — their questions, their format, their call. We deliberately do
+   **not** hand out question packs or a mandated rubric. If the community later wants to share
+   optional prep material, that's a community resource, never a requirement we impose.
 
 2. **Recognition is the currency you pay volunteers in.** Public profile, "24 sessions given"
    counter, shareable badge, capacity caps so popular volunteers don't burn out. ADPList has
    40,000+ mentors and still has documented no-show and burnout problems — because they
    solved discovery and never solved accountability.
 
-**Sustainability:** never subscriptions. Company sponsorship (the Karat "Brilliant Black
-Minds" model — employers fund free sessions as CSR + pipeline access) plus donations.
-Consider **AGPL for your own repo** so nobody — including a future you — can fork it into a
-paid product. That makes "কখনো ব্যবসায়িক প্ল্যাটফর্ম হবে না" enforceable in code, not just a promise.
+**Sustainability:** never subscriptions, and never conditioned on the user. **Today the
+founders cover the hosting out of pocket** — the costs are small (see the ~$1–35/mo table
+above) and that is deliberately how it launches, so "free" never waits on funding.
+Sponsorship (the Karat "Brilliant Black Minds" model — employers fund sessions as CSR +
+pipeline access) and small donations are **optional top-ups, not the thing keeping the
+lights on**. The public copy must say it exactly that way: founders cover it, help is
+welcome but optional, the candidate is never the payer. Keep **AGPL on the repo** so
+nobody — including a future you — can fork it into a paid product. That makes
+"কখনো ব্যবসায়িক প্ল্যাটফর্ম হবে না" enforceable in code, not just a promise.

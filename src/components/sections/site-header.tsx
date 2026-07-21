@@ -28,9 +28,6 @@ export function SiteHeader() {
           <span className="display text-xl font-semibold tracking-tight sm:text-2xl">
             MockClub
           </span>
-          <span className="stamp-label hidden text-ink-soft lg:inline">
-            est. 2026
-          </span>
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">
@@ -50,9 +47,9 @@ export function SiteHeader() {
 
           <Button
             asChild
-            className="hidden rounded-none border-[1.5px] border-ink bg-ink font-medium text-paper shadow-[3px_3px_0_0_var(--vermilion)] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:bg-ink hover:shadow-[5px_5px_0_0_var(--vermilion)] sm:inline-flex"
+            className="hidden rounded-none border-[1.5px] border-panel bg-panel font-medium text-panel-fg shadow-[3px_3px_0_0_var(--vermilion)] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:bg-panel hover:shadow-[5px_5px_0_0_var(--vermilion)] sm:inline-flex"
           >
-            <Link href="#join">Get an invite</Link>
+            <Link href="/#join">Get an invite</Link>
           </Button>
 
           {/* Mobile menu — below md the links above are hidden entirely */}
@@ -93,8 +90,8 @@ export function SiteHeader() {
 
                 <SheetClose asChild>
                   <Link
-                    href="#join"
-                    className="press mt-6 bg-vermilion px-6 py-4 text-center text-base font-medium text-white dark:bg-vermilion-strong"
+                    href="/#join"
+                    className="press mt-6 bg-vermilion-strong px-6 py-4 text-center text-base font-medium text-chalk"
                   >
                     Get an invite
                   </Link>

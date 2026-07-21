@@ -59,12 +59,12 @@ export function TheGap() {
               </div>
             ))}
 
-            <div className="flex items-center justify-between gap-4 bg-ink px-5 py-5 text-paper sm:px-6 sm:py-6">
+            <div className="flex items-center justify-between gap-4 bg-panel px-5 py-5 text-panel-fg sm:px-6 sm:py-6">
               <span className="flex items-center gap-3 font-medium">
                 <Check className="size-4 shrink-0 text-vermilion" strokeWidth={3} />
                 MockClub
               </span>
-              <span className="display text-3xl font-semibold text-vermilion dark:text-vermilion-strong">
+              <span className="display text-3xl font-semibold text-vermilion-light">
                 Free
               </span>
             </div>
