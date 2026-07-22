@@ -26,12 +26,57 @@ export const ROLES = {
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
+/**
+ * Next sets this while `next build` runs. Hosts commonly inject runtime
+ * secrets only at runtime, so the build legitimately has none — the checks
+ * below must not fail a build for that.
+ */
+const IS_BUILD = process.env.NEXT_PHASE === "phase-production-build";
+
+/**
+ * Refuse to run in production without a secret.
+ *
+ * Better Auth falls back to a DEFAULT secret when this is unset, and only logs
+ * about it. That default is in its published source, so session cookies signed
+ * with it can be forged by anyone — a complete authentication bypass that
+ * presents as a working deployment. Failing to start is the safer failure.
+ */
+function authSecret(): string | undefined {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (secret) return secret;
+  if (IS_BUILD) return undefined;
+
+  const message =
+    "BETTER_AUTH_SECRET is not set. Better Auth would sign sessions with its " +
+    "public default secret, so anyone could forge one. Generate a value with " +
+    "`openssl rand -base64 32` and set it in the deployment environment.";
+
+  if (process.env.NODE_ENV === "production") throw new Error(message);
+  console.warn(`[auth] ${message}`);
+  return undefined;
+}
+
+function authBaseUrl(): string | undefined {
+  const url = process.env.BETTER_AUTH_URL;
+  if (!url && !IS_BUILD && process.env.NODE_ENV === "production") {
+    // Not fatal: Better Auth derives an origin from the request. But OAuth
+    // callbacks and redirects are built from it, so a wrong guess breaks
+    // sign-in in ways that look like a Google misconfiguration.
+    console.warn(
+      "[auth] BETTER_AUTH_URL is not set; Google callbacks and redirects will " +
+        "be derived from each incoming request and may not match the redirect " +
+        "URI registered with Google.",
+    );
+  }
+  return url;
+}
+
 export const auth = betterAuth({
   // Passing `client` enables transactions. Atlas is a replica set, so they work.
   database: mongodbAdapter(getDb(), { client: getMongoClient() }),
 
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  secret: authSecret(),
+  baseURL: authBaseUrl(),
 
   socialProviders: {
     google: {
