@@ -45,11 +45,20 @@ export async function saveProfileAction(formData: FormData) {
   const { user, fail } = await guard("profile");
   if (fail) return fail;
 
+  // Malformed JSON must not throw and 500 the action.
+  let links: unknown = [];
+  try {
+    links = JSON.parse(String(formData.get("links") ?? "[]"));
+  } catch {
+    return { ok: false as const, error: "Couldn't read those links." };
+  }
+
   const result = await saveProfile(user!.id, {
     trackSlug: formData.get("trackSlug"),
     customTrack: formData.get("customTrack"),
     level: formData.get("level"),
     languages: formData.getAll("languages"),
+    links,
     timeZone: formData.get("timeZone"),
   });
 

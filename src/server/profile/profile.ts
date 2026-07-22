@@ -18,6 +18,74 @@ export const LANGUAGES = [
   "Français", "Bahasa Indonesia", "Tiếng Việt", "中文", "Русский", "اردو",
 ] as const;
 
+export const LINK_TYPES = [
+  "website", "linkedin", "x", "github", "facebook", "instagram", "youtube", "other",
+] as const;
+export type LinkType = (typeof LINK_TYPES)[number];
+
+export type ProfileLink = { type: LinkType; url: string };
+
+/** Two public profiles is the bar — it's how members know who they're talking to. */
+export const MIN_PROFILE_LINKS = 2;
+
+/**
+ * Hosts we expect per type, so a link can't be mislabelled (someone tagging a
+ * random site as "LinkedIn"). `website` and `other` accept any host.
+ */
+const EXPECTED_HOSTS: Partial<Record<LinkType, string[]>> = {
+  linkedin: ["linkedin.com"],
+  x: ["x.com", "twitter.com"],
+  github: ["github.com"],
+  facebook: ["facebook.com", "fb.com", "fb.me"],
+  instagram: ["instagram.com"],
+  youtube: ["youtube.com", "youtu.be"],
+};
+
+const LABEL: Record<LinkType, string> = {
+  website: "Website", linkedin: "LinkedIn", x: "X", github: "GitHub",
+  facebook: "Facebook", instagram: "Instagram", youtube: "YouTube", other: "Link",
+};
+
+function normalizeLink(
+  type: unknown,
+  rawUrl: unknown
+): { ok: true; link: ProfileLink } | { ok: false; error: string } {
+  if (typeof type !== "string" || !LINK_TYPES.includes(type as LinkType))
+    return { ok: false, error: "Pick what kind of link that is." };
+  if (typeof rawUrl !== "string" || !rawUrl.trim())
+    return { ok: false, error: "Add the link itself." };
+
+  const raw = rawUrl.trim();
+  if (raw.length > 300) return { ok: false, error: "That link is too long." };
+
+  // People type "linkedin.com/in/me" without a scheme.
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+
+  let url: URL;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    return { ok: false, error: `That ${LABEL[type as LinkType]} link isn't a valid URL.` };
+  }
+
+  // Only http(s). Blocks javascript:, data:, file: — these render as clickable
+  // links for other members, so anything else is an XSS vector.
+  if (url.protocol !== "https:" && url.protocol !== "http:")
+    return { ok: false, error: "Links must start with http:// or https://" };
+
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  if (!host.includes(".")) return { ok: false, error: "That link isn't a valid URL." };
+
+  const expected = EXPECTED_HOSTS[type as LinkType];
+  if (expected && !expected.some((h) => host === h || host.endsWith(`.${h}`)))
+    return {
+      ok: false,
+      error: `A ${LABEL[type as LinkType]} link should point at ${expected[0]}.`,
+    };
+
+  return { ok: true, link: { type: type as LinkType, url: url.toString() } };
+}
+
 export type ProfileDoc = {
   userId: string;
   trackSlug: string;
@@ -25,6 +93,8 @@ export type ProfileDoc = {
   customTrack?: string;
   level: Level;
   languages: string[];
+  /** At least MIN_PROFILE_LINKS public profiles — our identity signal. */
+  links: ProfileLink[];
   /** IANA id only — never an offset or abbreviation (see PLAN.md §4). */
   timeZone: string;
   updatedAt: Date;
@@ -61,6 +131,7 @@ export async function saveProfile(
     level: unknown;
     languages: unknown;
     timeZone: unknown;
+    links?: unknown;
   }
 ): Promise<SaveResult> {
   const { trackSlug, level, languages, timeZone } = input;
@@ -90,6 +161,30 @@ export async function saveProfile(
   if (langs.length === 0)
     return { ok: false, error: "Pick at least one language you can interview in." };
 
+  const rawLinks = Array.isArray(input.links) ? input.links : [];
+  const links: ProfileLink[] = [];
+  const seen = new Set<string>();
+
+  for (const item of rawLinks) {
+    if (!item || typeof item !== "object") continue;
+    const { type, url } = item as { type?: unknown; url?: unknown };
+    if (typeof url === "string" && !url.trim()) continue; // ignore blank rows
+
+    const res = normalizeLink(type, url);
+    if (!res.ok) return res;
+
+    const key = res.link.url.toLowerCase().replace(/\/+$/, "");
+    if (seen.has(key)) continue; // same link twice doesn't count twice
+    seen.add(key);
+    links.push(res.link);
+  }
+
+  if (links.length < MIN_PROFILE_LINKS)
+    return {
+      ok: false,
+      error: `Add at least ${MIN_PROFILE_LINKS} links so people know who you are.`,
+    };
+
   await getDb().collection<ProfileDoc>("profile").updateOne(
     { userId },
     {
@@ -97,6 +192,7 @@ export async function saveProfile(
         trackSlug,
         level: level as Level,
         languages: langs,
+        links,
         timeZone,
         updatedAt: new Date(),
         ...(customTrack ? { customTrack } : {}),
