@@ -54,7 +54,7 @@ export function SiteFooter() {
 
         <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-panel-fg/20 pt-7 sm:mt-14">
           <p className="stamp-label text-panel-fg/70">
-            © {new Date().getFullYear()} MockClub — built by volunteers
+            © {new Date().getFullYear()} MockClub
           </p>
           <p className="stamp-label text-panel-fg/70">
             Never a business. Not now, not later.

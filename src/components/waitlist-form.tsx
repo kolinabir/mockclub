@@ -106,7 +106,7 @@ export function WaitlistForm() {
               onClick={() => setMethod(m.type)}
               aria-pressed={method === m.type}
               className={cn(
-                "border-[1.5px] px-3 py-2.5 text-sm font-medium transition-all",
+                "min-h-11 border-[1.5px] px-3 py-2.5 text-sm font-medium transition-all",
                 method === m.type
                   ? "border-ink bg-ink text-paper"
                   : "border-ink/25 text-ink-soft hover:border-ink"
@@ -148,7 +148,7 @@ export function WaitlistForm() {
               onClick={() => setRole(r.value)}
               aria-pressed={role === r.value}
               className={cn(
-                "border-[1.5px] px-3 py-2.5 text-sm font-medium transition-all",
+                "min-h-11 border-[1.5px] px-3 py-2.5 text-sm font-medium transition-all",
                 role === r.value
                   ? "border-vermilion-deep text-vermilion-deep"
                   : "border-ink/25 text-ink-soft hover:border-ink"

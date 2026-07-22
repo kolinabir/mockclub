@@ -44,10 +44,12 @@ export function Volunteer() {
           {/* The heart of the whole project — the pay-it-forward line.
               border-s (logical) so it flips correctly in RTL; no radius on a
               single-sided border. */}
+          {/* text-balance evens the line lengths. A forced <br> here fought the
+              natural wrap and stranded "starting out." on its own line. */}
           <blockquote className="mt-8 border-s-2 border-vermilion-light ps-5 sm:mt-9">
-            <p className="display text-2xl font-semibold leading-snug text-panel-fg sm:text-[1.75rem]">
-              Someone once gave you an hour when you were starting out.
-              <br className="hidden sm:block" /> This is how you give it back.
+            <p className="display max-w-lg text-balance text-2xl font-semibold leading-snug text-panel-fg sm:text-[1.75rem]">
+              Someone once gave you an hour when you were starting out. This is
+              how you give it back.
             </p>
           </blockquote>
 

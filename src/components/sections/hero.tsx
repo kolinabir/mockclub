@@ -40,16 +40,18 @@ export function Hero() {
             <span className="underline-ink">actually hired</span> people.
           </h1>
 
-          {/* Keyword-bearing subhead: the h1 is the promise, this is the query. */}
+          {/* Keyword-bearing subhead: the h1 is the promise, this is the query.
+              Emphasis goes on "free" — bolding the competitor's price made the
+              eye land on $150–$339, which is the opposite of the point. */}
           <h2
             className="rise mt-7 max-w-xl text-lg leading-relaxed text-ink-soft sm:mt-9"
             style={{ animationDelay: "220ms" }}
           >
-            Free mock interviews with real people — in any language, in your
-            timezone. Sessions cost{" "}
-            <span className="font-semibold text-ink">$150–$339 an hour</span>{" "}
-            everywhere else. Here they cost nothing, because the person on the
-            other side is a working professional volunteering an hour.
+            Free mock interviews with real people — any role, any language, your
+            timezone. Everywhere else, an hour like this costs $150–$339. Here
+            it&apos;s{" "}
+            <span className="font-semibold text-ink">free, always</span> —
+            because the person across from you is a volunteer, not a vendor.
           </h2>
 
           <div
