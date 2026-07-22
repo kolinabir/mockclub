@@ -190,6 +190,14 @@ export default async function AdminPage() {
         </p>
 
         <MemberTable rows={members.rows} />
+
+        {/* Never let a trimmed table read as the whole list. */}
+        {members.truncated && (
+          <p className="mt-3 text-sm text-ink-soft">
+            Showing the {members.rows.length} newest of {stats.total} members.
+            The counts above cover all of them.
+          </p>
+        )}
       </section>
 
       <section className="mt-12">

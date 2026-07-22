@@ -50,9 +50,25 @@ export type MemberStats = {
   openSlots: number;
 };
 
-export type MembersView = { rows: MemberRow[]; stats: MemberStats };
+export type MembersView = {
+  rows: MemberRow[];
+  stats: MemberStats;
+  /** True when more members exist than the table is showing. */
+  truncated: boolean;
+};
 
-export async function listMembers(limit = 200): Promise<MembersView> {
+/**
+ * Hard ceiling on how many members are examined at once.
+ *
+ * Deliberately above the display cap: the stats are counted across everything
+ * loaded, so computing them from a shorter page would make "3 bookable
+ * interviewers" mean "3 among the newest 200" while reading as the whole truth.
+ * An admin sizing up launch readiness from an under-count is worse than a
+ * slower page. Past this, the panel needs real pagination and aggregate counts.
+ */
+const MAX_MEMBERS = 2000;
+
+export async function listMembers(rowLimit = 200): Promise<MembersView> {
   const db = getDb();
 
   const people = (await users()
@@ -61,7 +77,7 @@ export async function listMembers(limit = 200): Promise<MembersView> {
       {
         projection: { email: 1, name: 1, role: 1, onboardedAt: 1 },
         sort: { _id: -1 },
-        limit,
+        limit: MAX_MEMBERS,
       },
     )
     .toArray()) as UserDoc[];
@@ -127,15 +143,19 @@ export async function listMembers(limit = 200): Promise<MembersView> {
     };
   });
 
+  // Stats count EVERY member examined; only the table is trimmed.
+  const stats: MemberStats = {
+    total: rows.length,
+    interviewers: rows.filter((r) => r.isInterviewer).length,
+    candidates: rows.filter((r) => !r.isInterviewer).length,
+    onboarded: rows.filter((r) => r.onboardedAt).length,
+    bookableInterviewers: rows.filter((r) => r.bookable).length,
+    openSlots: rows.reduce((sum, r) => sum + r.openSlots, 0),
+  };
+
   return {
-    rows,
-    stats: {
-      total: rows.length,
-      interviewers: rows.filter((r) => r.isInterviewer).length,
-      candidates: rows.filter((r) => !r.isInterviewer).length,
-      onboarded: rows.filter((r) => r.onboardedAt).length,
-      bookableInterviewers: rows.filter((r) => r.bookable).length,
-      openSlots: rows.reduce((sum, r) => sum + r.openSlots, 0),
-    },
+    rows: rows.slice(0, rowLimit),
+    stats,
+    truncated: rows.length > rowLimit,
   };
 }

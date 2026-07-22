@@ -21,12 +21,24 @@ export type InterviewerSettings = {
 
 export type SaveResult = { ok: true } | { ok: false; error: string };
 
+let settingsIndexEnsured = false;
+
+function settings() {
+  const c = getDb().collection<InterviewerSettings>("interviewerSettings");
+  if (!settingsIndexEnsured) {
+    settingsIndexEnsured = true;
+    // Every read here filters on userId and there was no index, so both the
+    // dashboard's findOne and the admin panel's `$in` over every member were
+    // full collection scans. One document per interviewer, so it only grows.
+    void c.createIndex({ userId: 1 }, { unique: true }).catch(() => {});
+  }
+  return c;
+}
+
 export async function getSettings(
   userId: string,
 ): Promise<InterviewerSettings | null> {
-  return getDb()
-    .collection<InterviewerSettings>("interviewerSettings")
-    .findOne({ userId });
+  return settings().findOne({ userId }, { projection: { _id: 0 } });
 }
 
 /** Cap applied to a member who has never chosen one. */
@@ -62,9 +74,7 @@ export async function saveSettings(
     set.maxSessionsPerMonth = max;
   }
 
-  await getDb()
-    .collection<InterviewerSettings>("interviewerSettings")
-    .updateOne(
+  await settings().updateOne(
       { userId },
       {
         $set: set,
