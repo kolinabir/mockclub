@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   LogOut,
   Shield,
-  User as UserIcon,
 } from "lucide-react";
 
 import {
@@ -18,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { GoogleMark } from "@/components/google-mark";
 import { signOut } from "@/lib/auth-client";
 
 export type UserMenuProps = {
@@ -78,7 +78,7 @@ export function UserMenu({ name, email, image, isAdmin }: UserMenuProps) {
 
         {isAdmin && (
           <DropdownMenuItem asChild>
-            <Link href="/admin" className="cursor-pointer">
+            <Link href="/dashboard/admin" className="cursor-pointer">
               <Shield className="size-4" /> Admin
             </Link>
           </DropdownMenuItem>
@@ -100,14 +100,25 @@ export function UserMenu({ name, email, image, isAdmin }: UserMenuProps) {
   );
 }
 
+/**
+ * Signed-out affordance in the header.
+ *
+ * A bare person glyph said "account" without saying what tapping it does, and
+ * gave no hint that signing in means Google — which is the whole of the auth
+ * story here. The mark plus the word answers both before the click.
+ *
+ * Still a link to /sign-in rather than firing OAuth directly: that page carries
+ * the "we only ask Google for your name and email" line, and sending someone to
+ * a consent screen straight from a header button skips the promise.
+ */
 export function SignedOutIcon() {
   return (
     <Link
       href="/sign-in"
-      aria-label="Sign in"
-      className="inline-flex size-9 shrink-0 items-center justify-center border border-ink/20 text-ink-soft transition-colors hover:border-ink hover:text-vermilion-deep"
+      className="inline-flex h-9 shrink-0 items-center gap-2 border border-ink/20 px-3 text-sm font-medium text-ink transition-colors hover:border-ink hover:text-vermilion-deep"
     >
-      <UserIcon className="size-4" strokeWidth={2} />
+      <GoogleMark className="size-4 shrink-0" />
+      Login
     </Link>
   );
 }

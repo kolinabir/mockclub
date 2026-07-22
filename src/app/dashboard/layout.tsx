@@ -26,7 +26,13 @@ export default async function DashboardLayout({
 
   // New members choose candidate/interviewer once before the dashboard makes
   // any sense — the whole UI branches on that answer.
-  if (!(await hasOnboarded(user.id))) redirect("/onboarding");
+  //
+  // Admins are exempt. Onboarding builds a MEMBER profile — track, level,
+  // skills, public links — and an operator account has no use for one; being
+  // forced through four steps about which interviews you can run, just to reach
+  // the waitlist, is the wrong ask. An admin who also wants to take part can
+  // still walk /onboarding deliberately once they hold a member role.
+  if (!user.isAdmin && !(await hasOnboarded(user.id))) redirect("/onboarding");
 
   return (
     // SidebarMenuButton renders a Tooltip when collapsed to icons, but this

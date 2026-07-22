@@ -146,12 +146,12 @@ export function DashboardSidebar({ user }: { user: SidebarUser }) {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname === "/admin"}
-                    tooltip="Waitlist"
+                    isActive={pathname === "/dashboard/admin"}
+                    tooltip="Admin"
                   >
-                    <Link href="/admin">
+                    <Link href="/dashboard/admin">
                       <Shield />
-                      <span>Waitlist</span>
+                      <span>Admin</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

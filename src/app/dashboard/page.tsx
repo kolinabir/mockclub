@@ -143,6 +143,13 @@ export default async function DashboardOverview() {
     countWaitingCandidates(),
   ]);
 
+  // An admin who skipped onboarding has no member profile, so this overview
+  // would greet them with a checklist for an account they never signed up for.
+  // Send them where they were going. Keyed on the profile we already fetched,
+  // so it costs no extra query — and an admin who DID onboard as a member keeps
+  // the normal dashboard.
+  if (user.isAdmin && !profile) redirect("/dashboard/admin");
+
   const firstName = user.name?.split(" ")[0] ?? "there";
   const role = user.isInterviewer ? "interviewer" : "candidate";
   const checklist = profileChecklist(profile, role);
