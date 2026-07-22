@@ -29,6 +29,15 @@ export type MemberRow = {
   isInterviewer: boolean;
   /** Null until they finish the form steps. */
   onboardedAt: Date | null;
+  /** When the welcome email went out. Null means it never did. */
+  welcomeEmailSentAt: Date | null;
+  /**
+   * Finished onboarding but has no welcome email.
+   *
+   * `sendWelcomeEmail` releases its claim when SMTP fails, so this is not
+   * cosmetic — it is the only visible trace of a send that didn't happen.
+   */
+  welcomeMissing: boolean;
   timeZone: string | null;
   disciplines: string[];
   /** Every checklist item for their role is done. */
@@ -45,6 +54,10 @@ export type MemberStats = {
   interviewers: number;
   candidates: number;
   onboarded: number;
+  /** How many have actually received the welcome email. */
+  welcomed: number;
+  /** Onboarded members whose welcome never sent. Should be zero. */
+  welcomeMissing: number;
   /** Interviewers who are genuinely bookable — the number that gates launch. */
   bookableInterviewers: number;
   openSlots: number;
@@ -75,7 +88,13 @@ export async function listMembers(rowLimit = 200): Promise<MembersView> {
     .find(
       {},
       {
-        projection: { email: 1, name: 1, role: 1, onboardedAt: 1 },
+        projection: {
+          email: 1,
+          name: 1,
+          role: 1,
+          onboardedAt: 1,
+          welcomeEmailSentAt: 1,
+        },
         sort: { _id: -1 },
         limit: MAX_MEMBERS,
       },
@@ -127,13 +146,18 @@ export async function listMembers(rowLimit = 200): Promise<MembersView> {
       isInterviewer ? "interviewer" : "candidate",
     ).every((item) => item.done);
 
+    const onboardedAt = person.onboardedAt ?? null;
+    const welcomeEmailSentAt = person.welcomeEmailSentAt ?? null;
+
     return {
       userId,
       name: person.name ?? "—",
       email: person.email,
       roles,
       isInterviewer,
-      onboardedAt: person.onboardedAt ?? null,
+      onboardedAt,
+      welcomeEmailSentAt,
+      welcomeMissing: Boolean(onboardedAt) && !welcomeEmailSentAt,
       timeZone: profile?.timeZone ?? null,
       disciplines: profile?.disciplines ?? [],
       profileComplete,
@@ -149,6 +173,8 @@ export async function listMembers(rowLimit = 200): Promise<MembersView> {
     interviewers: rows.filter((r) => r.isInterviewer).length,
     candidates: rows.filter((r) => !r.isInterviewer).length,
     onboarded: rows.filter((r) => r.onboardedAt).length,
+    welcomed: rows.filter((r) => r.welcomeEmailSentAt).length,
+    welcomeMissing: rows.filter((r) => r.welcomeMissing).length,
     bookableInterviewers: rows.filter((r) => r.bookable).length,
     openSlots: rows.reduce((sum, r) => sum + r.openSlots, 0),
   };

@@ -77,6 +77,7 @@ function MemberTable({ rows }: { rows: MemberRow[] }) {
               "Member",
               "Role",
               "Onboarded",
+              "Welcome email",
               "Profile",
               "Hours",
               "Bookable",
@@ -114,6 +115,24 @@ function MemberTable({ rows }: { rows: MemberRow[] }) {
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-ink-soft">
                 {r.onboardedAt ? shortDate(r.onboardedAt) : "—"}
+              </td>
+              <td className="whitespace-nowrap px-4 py-3">
+                {r.welcomeEmailSentAt ? (
+                  <span className="text-ink-soft">
+                    {shortDate(r.welcomeEmailSentAt)}
+                  </span>
+                ) : r.welcomeMissing ? (
+                  // Onboarded but unmailed means the send failed and released
+                  // its claim — worth noticing, not a dash like everyone else.
+                  <span
+                    className="font-medium text-vermilion-deep"
+                    title="Onboarded, but no welcome email was sent"
+                  >
+                    Not sent
+                  </span>
+                ) : (
+                  <span className="text-ink-soft">—</span>
+                )}
               </td>
               <td className="px-4 py-3">
                 <Flag on={r.profileComplete} label="Profile complete" />
@@ -179,15 +198,28 @@ export default async function AdminPage() {
             highlight
           />
           <Stat label="Candidates" value={String(stats.candidates)} />
-          <Stat label="Bookable hours" value={String(stats.openSlots)} />
+          <Stat label="Welcome emails sent" value={String(stats.welcomed)} />
         </dl>
 
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">
           {stats.interviewers} {stats.interviewers === 1 ? "person" : "people"}{" "}
           picked interviewer, {stats.bookableInterviewers} of them can actually
           be booked. {stats.onboarded} of {stats.total} finished onboarding.
-          Ratio: {ratio} candidates per interviewer.
+          Ratio: {ratio} candidates per interviewer. {stats.openSlots} bookable{" "}
+          {stats.openSlots === 1 ? "hour" : "hours"} in total.
         </p>
+
+        {stats.welcomeMissing > 0 && (
+          <p className="press mt-4 bg-card p-4 text-sm leading-relaxed">
+            <span className="font-medium text-vermilion-deep">
+              {stats.welcomeMissing}{" "}
+              {stats.welcomeMissing === 1 ? "member" : "members"} finished
+              onboarding without a welcome email.
+            </span>{" "}
+            The send failed and released its claim, so it will not retry on its
+            own — check the SMTP credentials and the server log.
+          </p>
+        )}
 
         <MemberTable rows={members.rows} />
 
