@@ -1,8 +1,10 @@
 name: CI
 
 on:
-  push: { branches: [main] }
-  pull_request: { branches: [main] }
+  # dev is the integration branch (feat/* -> dev -> main), so it must be
+  # checked too — otherwise nothing is linted or built until release.
+  push: { branches: [main, dev] }
+  pull_request: { branches: [main, dev] }
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
