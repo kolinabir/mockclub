@@ -21,6 +21,7 @@ import {
   type MemberRole,
   type ProfileLink,
 } from "@/server/profile/profile";
+import { sendWelcomeEmail } from "@/server/email/welcome";
 import { syncTimeZone } from "@/server/scheduling/scheduling";
 import { users, userFilter } from "@/server/users/users";
 
@@ -482,6 +483,12 @@ async function materialize(
   // from the first day rather than from their first profile edit. There are no
   // rules yet, so this writes one small document and generates nothing.
   await syncTimeZone(userId).catch(() => {});
+
+  // The welcome email. AFTER the transaction and swallowed on purpose: the
+  // profile is already committed and the member is already onboarded, so a
+  // dead SMTP host must not turn a finished signup into an error on screen.
+  // sendWelcomeEmail releases its own claim if the send fails.
+  await sendWelcomeEmail(userId, role).catch(() => {});
 
   // Best-effort cleanup; the TTL index sweeps it anyway.
   await drafts()

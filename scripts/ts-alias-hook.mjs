@@ -21,6 +21,13 @@ registerHooks({
         shortCircuit: true,
       };
     }
+    // `server-only` throws when resolved outside a server component, which
+    // makes every module carrying it untestable here. The guard that actually
+    // matters is the one Next's bundler enforces at build time — this only
+    // stubs it for the test process, so pure server logic can be exercised.
+    if (specifier === "server-only") {
+      return { url: "data:text/javascript,", shortCircuit: true };
+    }
     return next(specifier, context);
   },
 });

@@ -21,6 +21,8 @@ export type UserDoc = {
   onboardedAt?: Date;
   /** When they picked candidate/interviewer — precedes onboardedAt. */
   roleChosenAt?: Date;
+  /** Claim marker for the welcome email, so it can only ever send once. */
+  welcomeEmailSentAt?: Date;
   name?: string;
 };
 
