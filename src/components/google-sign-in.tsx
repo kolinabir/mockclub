@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { signIn } from "@/lib/auth-client";
 
-export function GoogleSignIn({ callbackURL = "/admin" }: { callbackURL?: string }) {
+export function GoogleSignIn({ callbackURL = "/dashboard" }: { callbackURL?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
