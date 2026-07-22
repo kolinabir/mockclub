@@ -29,7 +29,10 @@ export default async function AdminPage() {
   if (!session) redirect("/sign-in");
   if (!hasRole(session.user.role, ROLES.admin)) redirect("/");
 
-  const [stats, entries] = await Promise.all([getWaitlistStats(), listWaitlist()]);
+  const [stats, entries] = await Promise.all([
+    getWaitlistStats(),
+    listWaitlist(),
+  ]);
 
   const interviewers = stats.byRole.interviewer ?? 0;
   const candidates = stats.byRole.candidate ?? 0;
@@ -83,7 +86,10 @@ export default async function AdminPage() {
               <thead>
                 <tr className="border-b border-ink/15">
                   {["When", "Wants to", "Via", "Contact"].map((h) => (
-                    <th key={h} className="stamp-label px-5 py-4 text-start text-ink-soft">
+                    <th
+                      key={h}
+                      className="stamp-label px-5 py-4 text-start text-ink-soft"
+                    >
                       {h}
                     </th>
                   ))}

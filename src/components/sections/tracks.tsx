@@ -15,8 +15,8 @@ export function Tracks() {
             </h2>
           </div>
           <p className="max-w-sm leading-relaxed text-ink-soft">
-            Founders rehearse the pitch. Marketers defend the strategy. Designers
-            walk the portfolio. Same club, different craft.
+            Founders rehearse the pitch. Marketers defend the strategy.
+            Designers walk the portfolio. Same club, different craft.
           </p>
         </Reveal>
 

@@ -13,7 +13,11 @@ export function BecomeInterviewer() {
     <button
       type="button"
       disabled={pending}
-      onClick={() => start(async () => { await becomeInterviewerAction(); })}
+      onClick={() =>
+        start(async () => {
+          await becomeInterviewerAction();
+        })
+      }
       className="press press-hover inline-flex h-12 items-center gap-2 rounded-none border-[1.5px] border-panel-fg bg-panel-fg px-7 text-base font-medium text-panel disabled:opacity-70"
     >
       {pending ? "Adding you…" : "I'll give an hour too"}

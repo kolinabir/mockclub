@@ -3,10 +3,16 @@ import { redirect } from "next/navigation";
 
 import { AvailabilityForm } from "@/components/dashboard/availability-form";
 import { getCurrentUser } from "@/lib/session";
-import { getAvailability, getSettings } from "@/server/availability/availability";
+import {
+  getAvailability,
+  getSettings,
+} from "@/server/availability/availability";
 import { getProfile } from "@/server/profile/profile";
 
-export const metadata: Metadata = { title: "Availability", robots: { index: false } };
+export const metadata: Metadata = {
+  title: "Availability",
+  robots: { index: false },
+};
 export const dynamic = "force-dynamic";
 
 export default async function AvailabilityPage() {

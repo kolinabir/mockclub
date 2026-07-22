@@ -9,7 +9,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // yet — submitting URLs that 404, or that exist but are thin, is worse for
   // ranking than not having them at all.
   return [
-    { url: SITE_URL, lastModified: now, changeFrequency: "weekly", priority: 1 },
+    {
+      url: SITE_URL,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 1,
+    },
     {
       url: `${SITE_URL}/about`,
       lastModified: now,

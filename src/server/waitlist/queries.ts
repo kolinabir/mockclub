@@ -17,12 +17,16 @@ export async function getWaitlistStats(): Promise<WaitlistStats> {
   const coll = getDb().collection<WaitlistDoc>("waitlist");
   const [total, roles, contacts] = await Promise.all([
     coll.countDocuments(),
-    coll.aggregate<{ _id: string; n: number }>([
-      { $group: { _id: "$role", n: { $sum: 1 } } },
-    ]).toArray(),
-    coll.aggregate<{ _id: string; n: number }>([
-      { $group: { _id: "$contactType", n: { $sum: 1 } } },
-    ]).toArray(),
+    coll
+      .aggregate<{ _id: string; n: number }>([
+        { $group: { _id: "$role", n: { $sum: 1 } } },
+      ])
+      .toArray(),
+    coll
+      .aggregate<{ _id: string; n: number }>([
+        { $group: { _id: "$contactType", n: { $sum: 1 } } },
+      ])
+      .toArray(),
   ]);
 
   const toMap = (rows: { _id: string; n: number }[]) =>

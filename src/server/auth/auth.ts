@@ -80,6 +80,9 @@ export function parseRoles(role?: string | null): string[] {
     .filter(Boolean);
 }
 
-export function hasRole(role: string | null | undefined, wanted: Role): boolean {
+export function hasRole(
+  role: string | null | undefined,
+  wanted: Role,
+): boolean {
   return parseRoles(role).includes(wanted);
 }

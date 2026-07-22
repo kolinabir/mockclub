@@ -9,36 +9,34 @@ export const contentType = "image/png";
  */
 export default function AppleIcon() {
   return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#F2EDE3",
-        }}
-      >
-        <svg width="150" height="150" viewBox="0 0 64 64">
-          <path
-            d="M 51 16 A 25 25 0 1 0 51 48"
-            fill="none"
-            stroke="#D8452A"
-            strokeWidth="7.5"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 20 42 L 25 22 L 32 34 L 39 22 L 44 42"
-            fill="none"
-            stroke="#17150F"
-            strokeWidth="5.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-    ),
-    size
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#F2EDE3",
+      }}
+    >
+      <svg width="150" height="150" viewBox="0 0 64 64">
+        <path
+          d="M 51 16 A 25 25 0 1 0 51 48"
+          fill="none"
+          stroke="#D8452A"
+          strokeWidth="7.5"
+          strokeLinecap="round"
+        />
+        <path
+          d="M 20 42 L 25 22 L 32 34 L 39 22 L 44 42"
+          fill="none"
+          stroke="#17150F"
+          strokeWidth="5.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>,
+    size,
   );
 }

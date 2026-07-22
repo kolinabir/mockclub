@@ -28,13 +28,20 @@ export function FaqSection() {
             className="mt-5 inline-flex items-center gap-1.5 font-medium text-vermilion-deep transition-colors hover:text-ink"
           >
             Read about MockClub
-            <ArrowUpRight className="size-4 rtl:-scale-x-100" strokeWidth={2.5} />
+            <ArrowUpRight
+              className="size-4 rtl:-scale-x-100"
+              strokeWidth={2.5}
+            />
           </Link>
         </Reveal>
 
         <Accordion type="single" collapsible className="w-full">
           {FAQ.map((item) => (
-            <AccordionItem key={item.q} value={item.q} className="border-ink/15">
+            <AccordionItem
+              key={item.q}
+              value={item.q}
+              className="border-ink/15"
+            >
               <AccordionTrigger className="py-5 text-start font-body text-base font-medium hover:text-vermilion hover:no-underline sm:py-6 sm:text-lg">
                 {item.q}
               </AccordionTrigger>

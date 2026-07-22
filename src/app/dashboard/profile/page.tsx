@@ -6,7 +6,10 @@ import { TRACKS } from "@/content/tracks";
 import { getCurrentUser } from "@/lib/session";
 import { getProfile, LANGUAGES } from "@/server/profile/profile";
 
-export const metadata: Metadata = { title: "Profile", robots: { index: false } };
+export const metadata: Metadata = {
+  title: "Profile",
+  robots: { index: false },
+};
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {

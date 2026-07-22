@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import {
   SidebarInset,
@@ -45,7 +46,11 @@ export default async function DashboardLayout({
         <SidebarInset>
           <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-ink/15 bg-paper/90 px-4 backdrop-blur-sm">
             <SidebarTrigger className="-ms-1" />
-            <div className="ms-auto">
+            {/* The dashboard has its own header, so it needs its own toggle:
+                the marketing ThemeToggle lives in header-nav and never renders
+                here, leaving dark mode unreachable on every /dashboard route. */}
+            <div className="ms-auto flex items-center gap-2">
+              <ThemeToggle />
               <UserMenu
                 name={user.name}
                 email={user.email}

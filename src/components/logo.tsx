@@ -56,7 +56,7 @@ export function LogoWordmark({
       <span
         className={cn(
           "display font-semibold tracking-tight",
-          size === "lg" ? "text-3xl" : "text-2xl"
+          size === "lg" ? "text-3xl" : "text-2xl",
         )}
       >
         MockClub

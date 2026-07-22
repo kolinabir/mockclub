@@ -14,10 +14,30 @@ const METHODS: {
   placeholder: string;
   inputMode: "email" | "tel" | "text";
 }[] = [
-  { type: "email", label: "Email", placeholder: "you@example.com", inputMode: "email" },
-  { type: "whatsapp", label: "WhatsApp", placeholder: "+8801… or wa.me link", inputMode: "tel" },
-  { type: "telegram", label: "Telegram", placeholder: "@yourhandle", inputMode: "text" },
-  { type: "linkedin", label: "LinkedIn", placeholder: "linkedin.com/in/you", inputMode: "text" },
+  {
+    type: "email",
+    label: "Email",
+    placeholder: "you@example.com",
+    inputMode: "email",
+  },
+  {
+    type: "whatsapp",
+    label: "WhatsApp",
+    placeholder: "+8801… or wa.me link",
+    inputMode: "tel",
+  },
+  {
+    type: "telegram",
+    label: "Telegram",
+    placeholder: "@yourhandle",
+    inputMode: "text",
+  },
+  {
+    type: "linkedin",
+    label: "LinkedIn",
+    placeholder: "linkedin.com/in/you",
+    inputMode: "text",
+  },
 ];
 
 const ROLES: { value: Role; label: string }[] = [
@@ -49,11 +69,19 @@ export function WaitlistForm() {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ contactType: method, contactValue: value, role, company }),
+        body: JSON.stringify({
+          contactType: method,
+          contactValue: value,
+          role,
+          company,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setState({ kind: "error", message: data.error ?? "Something went wrong." });
+        setState({
+          kind: "error",
+          message: data.error ?? "Something went wrong.",
+        });
         return;
       }
       setState({ kind: "done", already: data.status === "already", method });
@@ -70,13 +98,15 @@ export function WaitlistForm() {
             <Check className="size-5" strokeWidth={2.5} />
           </span>
           <p className="display text-2xl font-semibold">
-            {state.already ? "You're already on the list." : "You're on the list."}
+            {state.already
+              ? "You're already on the list."
+              : "You're on the list."}
           </p>
         </div>
         <p className="mt-4 leading-relaxed text-ink-soft">
-          We&apos;ll reach out on your {labelFor(state.method)} the moment the first
-          group opens. Thank you for being early — it genuinely helps us know how
-          many people to gather.
+          We&apos;ll reach out on your {labelFor(state.method)} the moment the
+          first group opens. Thank you for being early — it genuinely helps us
+          know how many people to gather.
         </p>
       </div>
     );
@@ -97,7 +127,9 @@ export function WaitlistForm() {
       />
 
       <fieldset>
-        <legend className="stamp-label text-ink-soft">How should we reach you?</legend>
+        <legend className="stamp-label text-ink-soft">
+          How should we reach you?
+        </legend>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {METHODS.map((m) => (
             <button
@@ -109,7 +141,7 @@ export function WaitlistForm() {
                 "min-h-11 border-[1.5px] px-3 py-2.5 text-sm font-medium transition-all",
                 method === m.type
                   ? "border-ink bg-ink text-paper"
-                  : "border-ink/25 text-ink-soft hover:border-ink"
+                  : "border-ink/25 text-ink-soft hover:border-ink",
               )}
             >
               {m.label}
@@ -151,7 +183,7 @@ export function WaitlistForm() {
                 "min-h-11 border-[1.5px] px-3 py-2.5 text-sm font-medium transition-all",
                 role === r.value
                   ? "border-vermilion-deep text-vermilion-deep"
-                  : "border-ink/25 text-ink-soft hover:border-ink"
+                  : "border-ink/25 text-ink-soft hover:border-ink",
               )}
             >
               {r.label}
@@ -170,13 +202,19 @@ export function WaitlistForm() {
         ) : (
           <>
             Reserve my seat
-            <ArrowUpRight className="size-4 rtl:-scale-x-100" strokeWidth={2.5} />
+            <ArrowUpRight
+              className="size-4 rtl:-scale-x-100"
+              strokeWidth={2.5}
+            />
           </>
         )}
       </button>
 
       {state.kind === "error" && (
-        <p role="alert" className="mt-3 text-sm font-medium text-vermilion-deep">
+        <p
+          role="alert"
+          className="mt-3 text-sm font-medium text-vermilion-deep"
+        >
           {state.message}
         </p>
       )}

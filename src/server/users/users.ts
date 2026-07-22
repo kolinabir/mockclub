@@ -19,6 +19,9 @@ export type UserDoc = {
   email: string;
   role?: string;
   onboardedAt?: Date;
+  /** When they picked candidate/interviewer — precedes onboardedAt. */
+  roleChosenAt?: Date;
+  name?: string;
 };
 
 /** `null` for a malformed id — ObjectId throws on bad input, which would 500. */

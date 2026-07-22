@@ -43,7 +43,8 @@ export default function NotFound() {
 
           <p className="mx-auto mt-6 max-w-md text-pretty text-lg leading-relaxed text-ink-soft">
             The link you followed doesn&apos;t lead anywhere — it may have moved
-            while we were still building the club. Nothing is broken on your end.
+            while we were still building the club. Nothing is broken on your
+            end.
           </p>
 
           <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
@@ -54,7 +55,10 @@ export default function NotFound() {
             >
               <Link href="/">
                 Back to the club
-                <ArrowUpRight className="size-4 rtl:-scale-x-100" strokeWidth={2.5} />
+                <ArrowUpRight
+                  className="size-4 rtl:-scale-x-100"
+                  strokeWidth={2.5}
+                />
               </Link>
             </Button>
             <Button

@@ -34,7 +34,7 @@ export type RateLimitResult = { limited: boolean; remaining: number };
 
 export async function rateLimit(
   key: string,
-  { max, windowSeconds }: { max: number; windowSeconds: number }
+  { max, windowSeconds }: { max: number; windowSeconds: number },
 ): Promise<RateLimitResult> {
   const windowMs = windowSeconds * 1000;
   const bucket = Math.floor(Date.now() / windowMs);
@@ -49,7 +49,7 @@ export async function rateLimit(
         $inc: { count: 1 },
         $setOnInsert: { expiresAt: new Date((bucket + 1) * windowMs) },
       },
-      { upsert: true, returnDocument: "after" }
+      { upsert: true, returnDocument: "after" },
     );
 
     const count = doc?.count ?? 1;
@@ -85,7 +85,10 @@ export function clientIp(headers: Headers): string {
 
   const xff = headers.get("x-forwarded-for");
   if (xff) {
-    const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
+    const parts = xff
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
     // Rightmost = added by the nearest trusted proxy.
     if (parts.length) return parts[parts.length - 1];
   }

@@ -56,19 +56,26 @@ export function ProfileForm({
   const [track, setTrack] = useState(initial?.trackSlug ?? tracks[0].slug);
   const [customTrack, setCustomTrack] = useState(initial?.customTrack ?? "");
   const [level, setLevel] = useState(initial?.level ?? "entry");
-  const [langs, setLangs] = useState<string[]>(initial?.languages ?? ["English"]);
+  const [langs, setLangs] = useState<string[]>(
+    initial?.languages ?? ["English"],
+  );
   // Detected from the browser, always overridable, stored as an IANA id.
   const [links, setLinks] = useState<LinkRow[]>(
     initial?.links?.length
       ? initial.links
-      : [{ type: "linkedin", url: "" }, { type: "github", url: "" }]
+      : [
+          { type: "linkedin", url: "" },
+          { type: "github", url: "" },
+        ],
   );
   const [tz, setTz] = useState(
-    initial?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+    initial?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
   );
 
   function toggleLang(l: string) {
-    setLangs((cur) => (cur.includes(l) ? cur.filter((x) => x !== l) : [...cur, l]));
+    setLangs((cur) =>
+      cur.includes(l) ? cur.filter((x) => x !== l) : [...cur, l],
+    );
   }
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -83,14 +90,18 @@ export function ProfileForm({
 
     start(async () => {
       const res = await saveProfileAction(fd);
-      setMsg(res.ok ? { ok: true, text: "Saved." } : { ok: false, text: res.error });
+      setMsg(
+        res.ok ? { ok: true, text: "Saved." } : { ok: false, text: res.error },
+      );
     });
   }
 
   return (
     <form onSubmit={submit} className="space-y-6">
       <div>
-        <label htmlFor="track" className="stamp-label text-ink-soft">Track</label>
+        <label htmlFor="track" className="stamp-label text-ink-soft">
+          Track
+        </label>
         <select
           id="track"
           value={track}
@@ -98,7 +109,9 @@ export function ProfileForm({
           className="mt-2 h-12 w-full rounded-none border-[1.5px] border-ink bg-paper px-3 text-base"
         >
           {tracks.map((t) => (
-            <option key={t.slug} value={t.slug}>{t.name}</option>
+            <option key={t.slug} value={t.slug}>
+              {t.name}
+            </option>
           ))}
           <option value={OTHER}>Something else…</option>
         </select>
@@ -136,7 +149,7 @@ export function ProfileForm({
                 "min-h-11 border-[1.5px] px-3 py-2.5 text-sm font-medium transition-all",
                 level === l.value
                   ? "border-ink bg-ink text-paper"
-                  : "border-ink/25 text-ink-soft hover:border-ink"
+                  : "border-ink/25 text-ink-soft hover:border-ink",
               )}
             >
               {l.label}
@@ -146,7 +159,9 @@ export function ProfileForm({
       </fieldset>
 
       <fieldset>
-        <legend className="stamp-label text-ink-soft">Languages you can interview in</legend>
+        <legend className="stamp-label text-ink-soft">
+          Languages you can interview in
+        </legend>
         <div className="mt-2 flex flex-wrap gap-2">
           {languages.map((l) => (
             <button
@@ -158,7 +173,7 @@ export function ProfileForm({
                 "min-h-11 border-[1.5px] px-3 py-2 text-sm font-medium transition-all",
                 langs.includes(l)
                   ? "border-vermilion-deep text-vermilion-deep"
-                  : "border-ink/25 text-ink-soft hover:border-ink"
+                  : "border-ink/25 text-ink-soft hover:border-ink",
               )}
             >
               {l}
@@ -172,25 +187,32 @@ export function ProfileForm({
           Where people can find you ({MIN_LINKS}+ required)
         </legend>
         <p className="mt-2 text-sm text-ink-soft">
-          This is how members know who they&apos;re talking to. Public profiles only —
-          nothing private.
+          This is how members know who they&apos;re talking to. Public profiles
+          only — nothing private.
         </p>
 
         <div className="mt-3 space-y-3">
           {links.map((row, i) => {
-            const meta = LINK_TYPES.find((t) => t.value === row.type) ?? LINK_TYPES[0];
+            const meta =
+              LINK_TYPES.find((t) => t.value === row.type) ?? LINK_TYPES[0];
             return (
               <div key={i} className="flex flex-wrap items-center gap-2">
                 <select
                   aria-label="Link type"
                   value={row.type}
                   onChange={(e) =>
-                    setLinks((r) => r.map((x, j) => (j === i ? { ...x, type: e.target.value } : x)))
+                    setLinks((r) =>
+                      r.map((x, j) =>
+                        j === i ? { ...x, type: e.target.value } : x,
+                      ),
+                    )
                   }
                   className="h-12 rounded-none border-[1.5px] border-ink bg-paper px-3 text-base"
                 >
                   {LINK_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
                   ))}
                 </select>
                 <input
@@ -199,7 +221,11 @@ export function ProfileForm({
                   placeholder={meta.hint}
                   maxLength={300}
                   onChange={(e) =>
-                    setLinks((r) => r.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))
+                    setLinks((r) =>
+                      r.map((x, j) =>
+                        j === i ? { ...x, url: e.target.value } : x,
+                      ),
+                    )
                   }
                   className="h-12 min-w-0 flex-1 rounded-none border-[1.5px] border-ink bg-paper px-3 text-base"
                 />
@@ -228,7 +254,9 @@ export function ProfileForm({
       </fieldset>
 
       <div>
-        <label htmlFor="tz" className="stamp-label text-ink-soft">Timezone</label>
+        <label htmlFor="tz" className="stamp-label text-ink-soft">
+          Timezone
+        </label>
         <input
           id="tz"
           value={tz}
@@ -249,7 +277,13 @@ export function ProfileForm({
           {pending ? "Saving…" : "Save profile"}
         </button>
         {msg && (
-          <p role="status" className={cn("text-sm font-medium", msg.ok ? "text-olive" : "text-vermilion-deep")}>
+          <p
+            role="status"
+            className={cn(
+              "text-sm font-medium",
+              msg.ok ? "text-olive" : "text-vermilion-deep",
+            )}
+          >
             {msg.text}
           </p>
         )}

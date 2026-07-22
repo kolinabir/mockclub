@@ -7,7 +7,10 @@ import { BecomeInterviewer } from "@/components/dashboard/become-interviewer";
 import { getCurrentUser } from "@/lib/session";
 import { countInterviewers, getProfile } from "@/server/profile/profile";
 
-export const metadata: Metadata = { title: "Overview", robots: { index: false } };
+export const metadata: Metadata = {
+  title: "Overview",
+  robots: { index: false },
+};
 export const dynamic = "force-dynamic";
 
 export default async function DashboardOverview() {
@@ -34,7 +37,10 @@ export default async function DashboardOverview() {
           className="press press-hover mt-8 flex items-center justify-between gap-4 bg-card p-5 transition-all"
         >
           <span className="flex items-center gap-3">
-            <CircleUser className="size-5 shrink-0 text-vermilion-deep" strokeWidth={2} />
+            <CircleUser
+              className="size-5 shrink-0 text-vermilion-deep"
+              strokeWidth={2}
+            />
             <span>
               <span className="block font-medium">Finish your profile</span>
               <span className="block text-sm text-ink-soft">
@@ -42,7 +48,10 @@ export default async function DashboardOverview() {
               </span>
             </span>
           </span>
-          <ArrowUpRight className="size-5 shrink-0 rtl:-scale-x-100" strokeWidth={2.5} />
+          <ArrowUpRight
+            className="size-5 shrink-0 rtl:-scale-x-100"
+            strokeWidth={2.5}
+          />
         </Link>
       )}
 
@@ -50,8 +59,8 @@ export default async function DashboardOverview() {
         <h2 className="display text-2xl font-semibold">Booking</h2>
         <p className="mt-3 max-w-xl leading-relaxed text-ink-soft">
           Booking opens once enough interviewers have joined — currently{" "}
-          <span className="font-semibold text-ink">{interviewers}</span>. We would
-          rather keep you waiting than hand you an empty calendar.
+          <span className="font-semibold text-ink">{interviewers}</span>. We
+          would rather keep you waiting than hand you an empty calendar.
         </p>
       </section>
 
@@ -62,8 +71,8 @@ export default async function DashboardOverview() {
           </h2>
           <p className="mt-3 max-w-lg leading-relaxed text-panel-fg/80">
             We have {interviewers} {interviewers === 1 ? "person" : "people"}{" "}
-            volunteering so far, and far more who want to practise. If you have done
-            this job, one hour a month genuinely moves the queue.
+            volunteering so far, and far more who want to practise. If you have
+            done this job, one hour a month genuinely moves the queue.
           </p>
           <div className="mt-6">
             <BecomeInterviewer />

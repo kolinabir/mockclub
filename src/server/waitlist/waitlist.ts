@@ -11,7 +11,12 @@ import { getDb } from "@/server/db/mongo";
  * stays thin. No `next/*` import (server/ boundary).
  */
 
-export const CONTACT_TYPES = ["email", "whatsapp", "telegram", "linkedin"] as const;
+export const CONTACT_TYPES = [
+  "email",
+  "whatsapp",
+  "telegram",
+  "linkedin",
+] as const;
 export type ContactType = (typeof CONTACT_TYPES)[number];
 
 export const WAITLIST_ROLES = ["candidate", "interviewer"] as const;
@@ -27,13 +32,12 @@ export type WaitlistDoc = {
 };
 
 export type AddResult =
-  | { ok: true; status: "added" | "already" }
-  | { ok: false; error: string };
+  { ok: true; status: "added" | "already" } | { ok: false; error: string };
 
 /** Normalise + validate a contact value for its type. */
 export function normalizeContact(
   type: ContactType,
-  raw: string
+  raw: string,
 ): { ok: true; value: string } | { ok: false; error: string } {
   const input = raw.trim();
   if (!input) return { ok: false, error: "Please enter your contact." };
@@ -50,7 +54,10 @@ export function normalizeContact(
       const fromLink = input.match(/wa\.me\/(\+?\d[\d\s\-()]*)/i)?.[1] ?? input;
       const digits = fromLink.replace(/[^\d]/g, "");
       if (digits.length < 8 || digits.length > 15)
-        return { ok: false, error: "Enter a valid WhatsApp number with country code." };
+        return {
+          ok: false,
+          error: "Enter a valid WhatsApp number with country code.",
+        };
       return { ok: true, value: `+${digits}` };
     }
     case "telegram": {
@@ -59,17 +66,25 @@ export function normalizeContact(
         .replace(/^@/, "")
         .toLowerCase();
       if (!/^[a-z0-9_]{5,32}$/.test(handle))
-        return { ok: false, error: "Enter a valid Telegram handle (5–32 letters, digits, _)." };
+        return {
+          ok: false,
+          error: "Enter a valid Telegram handle (5–32 letters, digits, _).",
+        };
       return { ok: true, value: `@${handle}` };
     }
     case "linkedin": {
       // Accept a full URL, in/slug, or a bare slug.
-      const slug = (input.match(/linkedin\.com\/in\/([^/\s?]+)/i)?.[1] ??
-        input.replace(/^.*\/in\//i, "").replace(/^@/, ""))
+      const slug = (
+        input.match(/linkedin\.com\/in\/([^/\s?]+)/i)?.[1] ??
+        input.replace(/^.*\/in\//i, "").replace(/^@/, "")
+      )
         .replace(/\/+$/, "")
         .toLowerCase();
       if (!/^[a-z0-9\-À-ÿ_%.]{3,100}$/.test(slug))
-        return { ok: false, error: "Enter your LinkedIn profile URL or handle." };
+        return {
+          ok: false,
+          error: "Enter your LinkedIn profile URL or handle.",
+        };
       return { ok: true, value: `linkedin.com/in/${slug}` };
     }
   }
@@ -98,7 +113,10 @@ export async function addToWaitlist(input: {
   if (!CONTACT_TYPES.includes(contactType as ContactType))
     return { ok: false, error: "Pick how we should reach you." };
   if (!WAITLIST_ROLES.includes(role as WaitlistRole))
-    return { ok: false, error: "Tell us whether you want to practise or give an hour." };
+    return {
+      ok: false,
+      error: "Tell us whether you want to practise or give an hour.",
+    };
   if (typeof contactValue !== "string")
     return { ok: false, error: "Please enter your contact." };
 
@@ -119,7 +137,11 @@ export async function addToWaitlist(input: {
     await c.insertOne(doc);
     return { ok: true, status: "added" };
   } catch (err: unknown) {
-    if (typeof err === "object" && err && (err as { code?: number }).code === 11000)
+    if (
+      typeof err === "object" &&
+      err &&
+      (err as { code?: number }).code === 11000
+    )
       return { ok: true, status: "already" };
     throw err;
   }

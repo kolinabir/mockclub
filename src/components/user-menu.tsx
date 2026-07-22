@@ -2,7 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, LogOut, Shield, User as UserIcon } from "lucide-react";
+import {
+  LayoutDashboard,
+  LogOut,
+  Shield,
+  User as UserIcon,
+} from "lucide-react";
 
 import {
   DropdownMenu,

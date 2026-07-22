@@ -14,12 +14,29 @@ export const LEVELS = ["entry", "mid", "senior", "switcher"] as const;
 export type Level = (typeof LEVELS)[number];
 
 export const LANGUAGES = [
-  "English", "বাংলা", "हिन्दी", "Español", "Português", "العربية",
-  "Français", "Bahasa Indonesia", "Tiếng Việt", "中文", "Русский", "اردو",
+  "English",
+  "বাংলা",
+  "हिन्दी",
+  "Español",
+  "Português",
+  "العربية",
+  "Français",
+  "Bahasa Indonesia",
+  "Tiếng Việt",
+  "中文",
+  "Русский",
+  "اردو",
 ] as const;
 
 export const LINK_TYPES = [
-  "website", "linkedin", "x", "github", "facebook", "instagram", "youtube", "other",
+  "website",
+  "linkedin",
+  "x",
+  "github",
+  "facebook",
+  "instagram",
+  "youtube",
+  "other",
 ] as const;
 export type LinkType = (typeof LINK_TYPES)[number];
 
@@ -42,13 +59,21 @@ const EXPECTED_HOSTS: Partial<Record<LinkType, string[]>> = {
 };
 
 const LABEL: Record<LinkType, string> = {
-  website: "Website", linkedin: "LinkedIn", x: "X", github: "GitHub",
-  facebook: "Facebook", instagram: "Instagram", youtube: "YouTube", other: "Link",
+  website: "Website",
+  linkedin: "LinkedIn",
+  x: "X",
+  github: "GitHub",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  youtube: "YouTube",
+  other: "Link",
 };
 
-function normalizeLink(
+/** Exported so onboarding validates links through the SAME rules — this is
+ * where the javascript:/data: XSS guard lives, and it must have one home. */
+export function normalizeLink(
   type: unknown,
-  rawUrl: unknown
+  rawUrl: unknown,
 ): { ok: true; link: ProfileLink } | { ok: false; error: string } {
   if (typeof type !== "string" || !LINK_TYPES.includes(type as LinkType))
     return { ok: false, error: "Pick what kind of link that is." };
@@ -65,7 +90,10 @@ function normalizeLink(
   try {
     url = new URL(withScheme);
   } catch {
-    return { ok: false, error: `That ${LABEL[type as LinkType]} link isn't a valid URL.` };
+    return {
+      ok: false,
+      error: `That ${LABEL[type as LinkType]} link isn't a valid URL.`,
+    };
   }
 
   // Only http(s). Blocks javascript:, data:, file: — these render as clickable
@@ -74,7 +102,8 @@ function normalizeLink(
     return { ok: false, error: "Links must start with http:// or https://" };
 
   const host = url.hostname.toLowerCase().replace(/^www\./, "");
-  if (!host.includes(".")) return { ok: false, error: "That link isn't a valid URL." };
+  if (!host.includes("."))
+    return { ok: false, error: "That link isn't a valid URL." };
 
   const expected = EXPECTED_HOSTS[type as LinkType];
   if (expected && !expected.some((h) => host === h || host.endsWith(`.${h}`)))
@@ -98,16 +127,27 @@ export type ProfileDoc = {
   /** IANA id only — never an offset or abbreviation (see PLAN.md §4). */
   timeZone: string;
   updatedAt: Date;
+
+  /* Set by onboarding (src/server/onboarding). Optional because profiles
+     created before onboarding shipped predate them. */
+  /** Discipline slugs from content/skills.ts, e.g. ["frontend","backend"]. */
+  disciplines?: string[];
+  /** Skill names — taxonomy entries plus capped custom ones. */
+  skills?: string[];
+  yearsOfExperience?: number;
+  currentRole?: { company: string; role: string; current: boolean };
 };
 
 const TRACK_SLUGS = new Set([...TRACKS.map((t) => t.slug), OTHER_TRACK_SLUG]);
 
 /** Validate against the runtime's own tz database — not a hand-rolled list. */
-function isValidTimeZone(tz: string): boolean {
+export function isValidTimeZone(tz: string): boolean {
   try {
-    const supported = (Intl as unknown as {
-      supportedValuesOf?: (k: string) => string[];
-    }).supportedValuesOf?.("timeZone");
+    const supported = (
+      Intl as unknown as {
+        supportedValuesOf?: (k: string) => string[];
+      }
+    ).supportedValuesOf?.("timeZone");
     if (supported) return supported.includes(tz);
     // Fallback for runtimes without supportedValuesOf.
     new Intl.DateTimeFormat("en", { timeZone: tz });
@@ -132,7 +172,7 @@ export async function saveProfile(
     languages: unknown;
     timeZone: unknown;
     links?: unknown;
-  }
+  },
 ): Promise<SaveResult> {
   const { trackSlug, level, languages, timeZone } = input;
 
@@ -143,7 +183,8 @@ export async function saveProfile(
   // because it will be shown to other members.
   let customTrack: string | undefined;
   if (trackSlug === OTHER_TRACK_SLUG) {
-    const raw = typeof input.customTrack === "string" ? input.customTrack.trim() : "";
+    const raw =
+      typeof input.customTrack === "string" ? input.customTrack.trim() : "";
     if (raw.length < 2)
       return { ok: false, error: "Tell us what you're practising for." };
     if (raw.length > 60)
@@ -156,10 +197,16 @@ export async function saveProfile(
     return { ok: false, error: "That timezone isn't recognised." };
 
   const langs = Array.isArray(languages)
-    ? languages.filter((l): l is string => typeof l === "string" && LANGUAGES.includes(l as never))
+    ? languages.filter(
+        (l): l is string =>
+          typeof l === "string" && LANGUAGES.includes(l as never),
+      )
     : [];
   if (langs.length === 0)
-    return { ok: false, error: "Pick at least one language you can interview in." };
+    return {
+      ok: false,
+      error: "Pick at least one language you can interview in.",
+    };
 
   const rawLinks = Array.isArray(input.links) ? input.links : [];
   const links: ProfileLink[] = [];
@@ -185,23 +232,25 @@ export async function saveProfile(
       error: `Add at least ${MIN_PROFILE_LINKS} links so people know who you are.`,
     };
 
-  await getDb().collection<ProfileDoc>("profile").updateOne(
-    { userId },
-    {
-      $set: {
-        trackSlug,
-        level: level as Level,
-        languages: langs,
-        links,
-        timeZone,
-        updatedAt: new Date(),
-        ...(customTrack ? { customTrack } : {}),
+  await getDb()
+    .collection<ProfileDoc>("profile")
+    .updateOne(
+      { userId },
+      {
+        $set: {
+          trackSlug,
+          level: level as Level,
+          languages: langs,
+          links,
+          timeZone,
+          updatedAt: new Date(),
+          ...(customTrack ? { customTrack } : {}),
+        },
+        // Drop a stale custom value when switching back to a real track.
+        ...(customTrack ? {} : { $unset: { customTrack: "" } }),
       },
-      // Drop a stale custom value when switching back to a real track.
-      ...(customTrack ? {} : { $unset: { customTrack: "" } }),
-    },
-    { upsert: true }
-  );
+      { upsert: true },
+    );
 
   return { ok: true };
 }

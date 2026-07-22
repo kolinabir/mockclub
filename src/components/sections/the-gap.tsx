@@ -15,13 +15,15 @@ export function TheGap() {
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:py-28">
         <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
           <Reveal>
-            <p className="stamp-label text-vermilion-deep">§ 01 — The problem</p>
+            <p className="stamp-label text-vermilion-deep">
+              § 01 — The problem
+            </p>
             <h2 className="display mt-5 text-[clamp(1.875rem,4.5vw,3.75rem)] font-semibold">
               Good practice is priced like a luxury.
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-ink-soft sm:mt-7">
-              For a junior developer in Dhaka, Lagos, or Manila, one session on a
-              mainstream platform can cost close to a month of salary. So the
+              For a junior developer in Dhaka, Lagos, or Manila, one session on
+              a mainstream platform can cost close to a month of salary. So the
               people who need the practice most are precisely the people who
               cannot buy it.
             </p>
@@ -55,13 +57,18 @@ export function TheGap() {
                   />
                   {label}
                 </span>
-                <span className="shrink-0 font-medium tabular-nums">{price}</span>
+                <span className="shrink-0 font-medium tabular-nums">
+                  {price}
+                </span>
               </div>
             ))}
 
             <div className="flex items-center justify-between gap-4 bg-panel px-5 py-5 text-panel-fg sm:px-6 sm:py-6">
               <span className="flex items-center gap-3 font-medium">
-                <Check className="size-4 shrink-0 text-vermilion" strokeWidth={3} />
+                <Check
+                  className="size-4 shrink-0 text-vermilion"
+                  strokeWidth={3}
+                />
                 MockClub
               </span>
               <span className="display text-3xl font-semibold text-vermilion-light">

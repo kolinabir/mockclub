@@ -3,7 +3,10 @@
 import { useState, useTransition } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
-import { saveAvailabilityAction, saveSettingsAction } from "@/app/dashboard/actions";
+import {
+  saveAvailabilityAction,
+  saveSettingsAction,
+} from "@/app/dashboard/actions";
 import { cn } from "@/lib/utils";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -24,7 +27,9 @@ export function AvailabilityForm({
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [rules, setRules] = useState<Rule[]>(
-    initialRules.length ? initialRules : [{ days: [2, 4], startTime: "18:00", endTime: "20:00" }]
+    initialRules.length
+      ? initialRules
+      : [{ days: [2, 4], startTime: "18:00", endTime: "20:00" }],
   );
   const [max, setMax] = useState(initialMax);
   const [paused, setPaused] = useState(initialPaused);
@@ -42,9 +47,16 @@ export function AvailabilityForm({
   function save() {
     start(async () => {
       const a = await saveAvailabilityAction(
-        (() => { const f = new FormData(); f.set("rules", JSON.stringify(rules)); return f; })()
+        (() => {
+          const f = new FormData();
+          f.set("rules", JSON.stringify(rules));
+          return f;
+        })(),
       );
-      if (!a.ok) { setMsg({ ok: false, text: a.error }); return; }
+      if (!a.ok) {
+        setMsg({ ok: false, text: a.error });
+        return;
+      }
 
       const s = await saveSettingsAction(
         (() => {
@@ -52,18 +64,21 @@ export function AvailabilityForm({
           f.set("maxSessionsPerMonth", String(max));
           if (paused) f.set("paused", "on");
           return f;
-        })()
+        })(),
       );
-      setMsg(s.ok ? { ok: true, text: "Saved." } : { ok: false, text: s.error });
+      setMsg(
+        s.ok ? { ok: true, text: "Saved." } : { ok: false, text: s.error },
+      );
     });
   }
 
   return (
     <div className="space-y-6">
       <p className="text-sm text-ink-soft">
-        These are <span className="font-medium text-ink">your local hours</span> in{" "}
-        <span className="font-medium text-ink">{timeZone}</span>. We store the wall-clock
-        time, not a fixed offset — so daylight-saving changes never shift your week.
+        These are <span className="font-medium text-ink">your local hours</span>{" "}
+        in <span className="font-medium text-ink">{timeZone}</span>. We store
+        the wall-clock time, not a fixed offset — so daylight-saving changes
+        never shift your week.
       </p>
 
       <div className="space-y-4">
@@ -80,7 +95,7 @@ export function AvailabilityForm({
                     "min-h-11 min-w-11 border-[1.5px] px-2 text-sm font-medium transition-all",
                     rule.days.includes(di)
                       ? "border-ink bg-ink text-paper"
-                      : "border-ink/25 text-ink-soft hover:border-ink"
+                      : "border-ink/25 text-ink-soft hover:border-ink",
                   )}
                 >
                   {d}
@@ -124,7 +139,12 @@ export function AvailabilityForm({
 
       <button
         type="button"
-        onClick={() => setRules((r) => [...r, { days: [], startTime: "18:00", endTime: "20:00" }])}
+        onClick={() =>
+          setRules((r) => [
+            ...r,
+            { days: [], startTime: "18:00", endTime: "20:00" },
+          ])
+        }
         className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink/25 px-4 text-sm font-medium text-ink-soft transition-colors hover:border-ink hover:text-ink"
       >
         <Plus className="size-4" /> Add another block
@@ -132,7 +152,9 @@ export function AvailabilityForm({
 
       <div className="border-t border-ink/15 pt-6">
         <label className="block">
-          <span className="stamp-label text-ink-soft">Max sessions per month</span>
+          <span className="stamp-label text-ink-soft">
+            Max sessions per month
+          </span>
           <input
             type="number"
             min={1}
@@ -143,7 +165,8 @@ export function AvailabilityForm({
           />
         </label>
         <p className="mt-2 text-sm text-ink-soft">
-          Your cap. One a month is genuinely useful — we would rather you stay than burn out.
+          Your cap. One a month is genuinely useful — we would rather you stay
+          than burn out.
         </p>
 
         <label className="mt-5 flex items-center gap-3">
@@ -170,7 +193,13 @@ export function AvailabilityForm({
           {pending ? "Saving…" : "Save availability"}
         </button>
         {msg && (
-          <p role="status" className={cn("text-sm font-medium", msg.ok ? "text-olive" : "text-vermilion-deep")}>
+          <p
+            role="status"
+            className={cn(
+              "text-sm font-medium",
+              msg.ok ? "text-olive" : "text-vermilion-deep",
+            )}
+          >
             {msg.text}
           </p>
         )}

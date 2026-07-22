@@ -31,7 +31,9 @@ export function Volunteer() {
     >
       <div className="mx-auto grid max-w-7xl gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-2 lg:items-center lg:gap-14 lg:py-28">
         <Reveal>
-          <p className="stamp-label text-vermilion-light">§ 04 — For volunteers</p>
+          <p className="stamp-label text-vermilion-light">
+            § 04 — For volunteers
+          </p>
           <h2 className="display mt-5 text-[clamp(1.875rem,4.5vw,3.75rem)] font-semibold">
             One hour. That&apos;s the whole ask.
           </h2>
@@ -60,14 +62,22 @@ export function Volunteer() {
           >
             <Link href="#join">
               Apply to interview
-              <ArrowUpRight className="size-4 rtl:-scale-x-100" strokeWidth={2.5} />
+              <ArrowUpRight
+                className="size-4 rtl:-scale-x-100"
+                strokeWidth={2.5}
+              />
             </Link>
           </Button>
         </Reveal>
 
         <ul className="grid gap-px bg-panel-fg/25">
           {PERKS.map(([title, body], i) => (
-            <Reveal as="li" key={title} delay={i * 90} className="bg-panel p-6 sm:p-7">
+            <Reveal
+              as="li"
+              key={title}
+              delay={i * 90}
+              className="bg-panel p-6 sm:p-7"
+            >
               <h3 className="display text-xl font-semibold">{title}</h3>
               <p className="mt-2.5 leading-relaxed text-panel-fg/75">{body}</p>
             </Reveal>

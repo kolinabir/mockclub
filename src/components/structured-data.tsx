@@ -61,7 +61,11 @@ export function StructuredData() {
           name: "Practice tracks",
           itemListElement: TRACKS.map((t) => ({
             "@type": "Offer",
-            itemOffered: { "@type": "Service", name: t.name, description: t.note },
+            itemOffered: {
+              "@type": "Service",
+              name: t.name,
+              description: t.note,
+            },
             price: "0",
             priceCurrency: "USD",
           })),

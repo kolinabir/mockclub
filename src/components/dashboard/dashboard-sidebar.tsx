@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarClock, CircleUser, LayoutDashboard, Shield } from "lucide-react";
+import {
+  CalendarClock,
+  CircleUser,
+  LayoutDashboard,
+  Shield,
+} from "lucide-react";
 
 import { Logo } from "@/components/logo";
 import {

@@ -18,7 +18,7 @@ export async function POST(req: Request) {
   if (perIp.limited || global.limited) {
     return NextResponse.json(
       { error: "Too many attempts. Please try again in a minute." },
-      { status: 429 }
+      { status: 429 },
     );
   }
 
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     // Never leak connection details or stack traces to the client.
     return NextResponse.json(
       { error: "Something went wrong on our end. Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

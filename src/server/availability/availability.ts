@@ -31,14 +31,18 @@ const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 export type SaveResult = { ok: true } | { ok: false; error: string };
 
-export async function getAvailability(userId: string): Promise<AvailabilityRule[]> {
+export async function getAvailability(
+  userId: string,
+): Promise<AvailabilityRule[]> {
   return getDb()
     .collection<AvailabilityRule>("availabilityRule")
     .find({ userId })
     .toArray();
 }
 
-export async function getSettings(userId: string): Promise<InterviewerSettings | null> {
+export async function getSettings(
+  userId: string,
+): Promise<InterviewerSettings | null> {
   return getDb()
     .collection<InterviewerSettings>("interviewerSettings")
     .findOne({ userId });
@@ -46,13 +50,19 @@ export async function getSettings(userId: string): Promise<InterviewerSettings |
 
 export async function saveAvailability(
   userId: string,
-  rules: { days: unknown; startTime: unknown; endTime: unknown }[]
+  rules: { days: unknown; startTime: unknown; endTime: unknown }[],
 ): Promise<SaveResult> {
   const clean: AvailabilityRule[] = [];
 
   for (const r of rules) {
     const days = Array.isArray(r.days)
-      ? [...new Set(r.days.filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6))]
+      ? [
+          ...new Set(
+            r.days.filter(
+              (d): d is number => Number.isInteger(d) && d >= 0 && d <= 6,
+            ),
+          ),
+        ]
       : [];
     if (days.length === 0) continue; // a rule with no days is just noise
 
@@ -76,23 +86,28 @@ export async function saveAvailability(
 
 export async function saveSettings(
   userId: string,
-  input: { maxSessionsPerMonth: unknown; paused: unknown }
+  input: { maxSessionsPerMonth: unknown; paused: unknown },
 ): Promise<SaveResult> {
   const max = Number(input.maxSessionsPerMonth);
   if (!Number.isInteger(max) || max < 1 || max > 30)
-    return { ok: false, error: "Cap must be between 1 and 30 sessions a month." };
+    return {
+      ok: false,
+      error: "Cap must be between 1 and 30 sessions a month.",
+    };
 
-  await getDb().collection<InterviewerSettings>("interviewerSettings").updateOne(
-    { userId },
-    {
-      $set: {
-        maxSessionsPerMonth: max,
-        paused: Boolean(input.paused),
-        updatedAt: new Date(),
+  await getDb()
+    .collection<InterviewerSettings>("interviewerSettings")
+    .updateOne(
+      { userId },
+      {
+        $set: {
+          maxSessionsPerMonth: max,
+          paused: Boolean(input.paused),
+          updatedAt: new Date(),
+        },
       },
-    },
-    { upsert: true }
-  );
+      { upsert: true },
+    );
 
   return { ok: true };
 }

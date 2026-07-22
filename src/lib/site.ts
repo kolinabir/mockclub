@@ -14,5 +14,14 @@ export const SITE_DESCRIPTION =
   "Free mock interviews with real people. A volunteer-run club where working professionals give an hour to practise with people breaking in. No AI, no payments, any language.";
 
 /** Locales we intend to serve. Drives hreflang once translations land. */
-export const LOCALES = ["en", "bn", "es", "hi", "ar", "pt", "fr", "id"] as const;
+export const LOCALES = [
+  "en",
+  "bn",
+  "es",
+  "hi",
+  "ar",
+  "pt",
+  "fr",
+  "id",
+] as const;
 export type Locale = (typeof LOCALES)[number];
