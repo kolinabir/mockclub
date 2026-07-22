@@ -6,14 +6,19 @@ import { drafts, type OnboardingDraft } from "@/server/onboarding/draft";
 import {
   LANGUAGES,
   LEVELS,
-  MIN_PROFILE_LINKS,
   isValidTimeZone,
+  minLinksFor,
   normalizeLink,
   validateCurrentRole,
   validateDisciplines,
+  validateFocus,
+  validateInterviewTypes,
+  validateOptionalUrl,
+  validateSearchStage,
   validateSkills,
   validateYears,
   type Level,
+  type MemberRole,
   type ProfileLink,
 } from "@/server/profile/profile";
 import { syncTimeZone } from "@/server/scheduling/scheduling";
@@ -34,14 +39,53 @@ import { users, userFilter } from "@/server/users/users";
  * step and scatters validation across as many files.
  */
 
-export const STEPS = ["identity", "experience", "expertise", "trust"] as const;
-export type StepId = (typeof STEPS)[number];
+/**
+ * The two sides get different questions.
+ *
+ * An interviewer declares what they can ASSESS; a candidate declares what they
+ * WANT. Running both through one sequence meant asking someone who signed up to
+ * practise which technologies they were qualified to grade other people on —
+ * and then requiring two public profiles from them at the very last step.
+ *
+ * `identity` and `trust` are shared ids because both roles answer them, but
+ * their validators and copy differ by role.
+ */
+export const STEPS_FOR = {
+  interviewer: ["identity", "experience", "expertise", "trust"],
+  candidate: ["identity", "goal", "situation", "trust"],
+} as const satisfies Record<MemberRole, readonly string[]>;
 
-export const STEP_TITLES: Record<StepId, string> = {
-  identity: "About you",
-  experience: "Your experience",
-  expertise: "What you can interview on",
-  trust: "How people know it's you",
+export type StepId =
+  | "identity"
+  | "experience"
+  | "expertise"
+  | "goal"
+  | "situation"
+  | "trust";
+
+/** Kept for callers that just want "every step id that exists". */
+export const STEPS = [
+  "identity",
+  "experience",
+  "expertise",
+  "goal",
+  "situation",
+  "trust",
+] as const satisfies readonly StepId[];
+
+export const STEP_TITLES: Record<MemberRole, Record<string, string>> = {
+  interviewer: {
+    identity: "About you",
+    experience: "Your experience",
+    expertise: "What you can interview on",
+    trust: "How people know it's you",
+  },
+  candidate: {
+    identity: "About you",
+    goal: "What you're practising for",
+    situation: "Where you are",
+    trust: "So your interviewer can prepare",
+  },
 };
 
 export type OnboardingState = {
@@ -127,6 +171,70 @@ function validateExperience(input: Record<string, unknown>): Validation {
   };
 }
 
+/**
+ * Candidate: what they want to practise.
+ *
+ * `level` here means the level they are INTERVIEWING AT, not the one they hold
+ * today — a career switcher's current level and their target are different, and
+ * matching on the wrong one wastes the session.
+ */
+function validateGoal(input: Record<string, unknown>): Validation {
+  const disciplines = validateDisciplines(input.disciplines);
+  if (!disciplines.ok) return disciplines;
+
+  if (
+    typeof input.level !== "string" ||
+    !(LEVELS as readonly string[]).includes(input.level)
+  )
+    return { ok: false, error: "Pick the level you're interviewing at." };
+
+  const interviewTypes = validateInterviewTypes(input.interviewTypes);
+  if (!interviewTypes.ok) return interviewTypes;
+
+  return {
+    ok: true,
+    data: {
+      disciplines: disciplines.value,
+      level: input.level as Level,
+      interviewTypes: interviewTypes.value,
+    },
+  };
+}
+
+/**
+ * Candidate: where they are.
+ *
+ * `currentRole` is OPTIONAL here and required for interviewers. Many candidates
+ * are between jobs — that is often exactly why they're here — so demanding an
+ * employer is both wrong and a little cruel.
+ */
+function validateSituation(input: Record<string, unknown>): Validation {
+  const years = validateYears(input.yearsOfExperience);
+  if (!years.ok) return years;
+
+  const stage = validateSearchStage(input.searchStage);
+  if (!stage.ok) return stage;
+
+  const data: Validated = {
+    yearsOfExperience: years.value,
+    searchStage: stage.value,
+  };
+
+  const hasRole =
+    String(input.company ?? "").trim() || String(input.role ?? "").trim();
+  if (hasRole) {
+    const role = validateCurrentRole({
+      company: input.company,
+      role: input.role,
+      current: input.current,
+    });
+    if (!role.ok) return role;
+    data.currentRole = role.value;
+  }
+
+  return { ok: true, data };
+}
+
 function validateExpertise(input: Record<string, unknown>): Validation {
   const disciplines = validateDisciplines(input.disciplines);
   if (!disciplines.ok) return disciplines;
@@ -140,60 +248,117 @@ function validateExpertise(input: Record<string, unknown>): Validation {
   };
 }
 
-function validateTrust(input: Record<string, unknown>): Validation {
-  const raw = Array.isArray(input.links) ? input.links : [];
-  const links: ProfileLink[] = [];
-  for (const entry of raw) {
-    if (!entry || typeof entry !== "object") continue;
-    const { type, url } = entry as { type?: unknown; url?: unknown };
-    if (typeof url !== "string" || !url.trim()) continue;
-    // Same validator the profile form uses — the javascript:/data: XSS guard
-    // has exactly one home.
-    const result = normalizeLink(type, url);
-    if (!result.ok) return result;
-    if (!links.some((l) => l.url === result.link.url)) links.push(result.link);
-  }
-  if (links.length < MIN_PROFILE_LINKS)
-    return {
-      ok: false,
-      error: `Add at least ${MIN_PROFILE_LINKS} links so people know who they're talking to.`,
-    };
+function validateTrust(role: MemberRole) {
+  return (input: Record<string, unknown>): Validation => {
+    const raw = Array.isArray(input.links) ? input.links : [];
+    const links: ProfileLink[] = [];
+    for (const entry of raw) {
+      if (!entry || typeof entry !== "object") continue;
+      const { type, url } = entry as { type?: unknown; url?: unknown };
+      if (typeof url !== "string" || !url.trim()) continue;
+      // Same validator the profile form uses — the javascript:/data: XSS guard
+      // has exactly one home.
+      const result = normalizeLink(type, url);
+      if (!result.ok) return result;
+      if (!links.some((l) => l.url === result.link.url)) links.push(result.link);
+    }
 
-  if (typeof input.timeZone !== "string" || !isValidTimeZone(input.timeZone))
-    return { ok: false, error: "Pick your time zone." };
+    const min = minLinksFor(role);
+    if (links.length < min)
+      return {
+        ok: false,
+        error:
+          min === 1
+            ? "Add one link — a CV, LinkedIn, GitHub or portfolio — so your interviewer knows who they're meeting."
+            : `Add at least ${min} links so people know who they're talking to.`,
+      };
 
-  return { ok: true, data: { links, timeZone: input.timeZone } };
+    if (typeof input.timeZone !== "string" || !isValidTimeZone(input.timeZone))
+      return { ok: false, error: "Pick your time zone." };
+
+    const data: Validated = { links, timeZone: input.timeZone };
+
+    // Everything below is candidate-only and optional — context that makes the
+    // hour useful, never a gate on finishing.
+    if (role === "candidate") {
+      const cv = validateOptionalUrl(input.cvUrl, "CV link");
+      if (!cv.ok) return cv;
+      const job = validateOptionalUrl(input.jobUrl, "job link");
+      if (!job.ok) return job;
+      const focus = validateFocus(input.focus);
+      if (!focus.ok) return focus;
+
+      data.cvUrl = cv.value;
+      data.jobUrl = job.value;
+      data.focus = focus.value;
+    }
+
+    return { ok: true, data };
+  };
 }
 
-const VALIDATORS: Record<StepId, (i: Record<string, unknown>) => Validation> = {
-  identity: validateIdentity,
-  experience: validateExperience,
-  expertise: validateExpertise,
-  trust: validateTrust,
-};
+function validatorsFor(
+  role: MemberRole,
+): Record<string, (i: Record<string, unknown>) => Validation> {
+  return role === "candidate"
+    ? {
+        identity: validateIdentity,
+        goal: validateGoal,
+        situation: validateSituation,
+        trust: validateTrust("candidate"),
+      }
+    : {
+        identity: validateIdentity,
+        experience: validateExperience,
+        expertise: validateExpertise,
+        trust: validateTrust("interviewer"),
+      };
+}
 
 // ----------------------------------------------------------------- interface
 
 /** First step whose data is missing — where to drop someone resuming. */
-function firstIncomplete(data: OnboardingDraft["data"]): StepId | null {
+function firstIncomplete(
+  data: OnboardingDraft["data"],
+  role: MemberRole,
+): StepId | null {
   if (!data.fullName || !data.languages?.length) return "identity";
-  if (!data.level || data.yearsOfExperience === undefined || !data.currentRole)
-    return "experience";
-  if (!data.disciplines?.length || !data.skills?.length) return "expertise";
-  if (!data.links || data.links.length < MIN_PROFILE_LINKS || !data.timeZone)
+
+  if (role === "candidate") {
+    if (!data.disciplines?.length || !data.level || !data.interviewTypes?.length)
+      return "goal";
+    // currentRole is deliberately absent from this check — optional for them.
+    if (data.yearsOfExperience === undefined || !data.searchStage)
+      return "situation";
+  } else {
+    if (!data.level || data.yearsOfExperience === undefined || !data.currentRole)
+      return "experience";
+    if (!data.disciplines?.length || !data.skills?.length) return "expertise";
+  }
+
+  if (
+    !data.links ||
+    data.links.length < minLinksFor(role) ||
+    !data.timeZone
+  )
     return "trust";
+
   return null;
 }
 
-export async function getState(userId: string): Promise<OnboardingState> {
+export async function getState(
+  userId: string,
+  role: MemberRole,
+): Promise<OnboardingState> {
+  const steps = STEPS_FOR[role];
   const draft = await drafts().findOne({ userId });
   const data = draft?.data ?? {};
-  const next = firstIncomplete(data);
-  const step = next ?? STEPS[STEPS.length - 1];
+  const next = firstIncomplete(data, role);
+  const step = next ?? steps[steps.length - 1];
   return {
     step,
-    stepIndex: STEPS.indexOf(step),
-    totalSteps: STEPS.length,
+    stepIndex: (steps as readonly string[]).indexOf(step),
+    totalSteps: steps.length,
     draft: data,
     complete: next === null,
   };
@@ -201,14 +366,18 @@ export async function getState(userId: string): Promise<OnboardingState> {
 
 export async function saveStep(
   userId: string,
+  role: MemberRole,
   stepId: unknown,
   input: Record<string, unknown>,
 ): Promise<StepResult> {
-  if (typeof stepId !== "string" || !STEPS.includes(stepId as StepId))
+  const validators = validatorsFor(role);
+  // Only steps belonging to THIS role are accepted — a candidate posting
+  // `expertise` would otherwise write interviewer fields into their draft.
+  if (typeof stepId !== "string" || !(stepId in validators))
     return { ok: false, error: "Unknown step." };
   const id = stepId as StepId;
 
-  const validated = VALIDATORS[id](input);
+  const validated = validators[id](input);
   if (!validated.ok) return validated;
 
   // Persist the step on its own, so a drop-off is resumable rather than lost.
@@ -221,12 +390,12 @@ export async function saveStep(
     { upsert: true },
   );
 
-  const state = await getState(userId);
+  const state = await getState(userId, role);
   // getState reports the earliest INCOMPLETE step, so editing an earlier one
   // jumps forward to what's still missing rather than walking the whole flow.
   if (!state.complete) return { ok: true, next: state.step, complete: false };
 
-  await materialize(userId, state.draft);
+  await materialize(userId, state.draft, role);
   return { ok: true, next: null, complete: true };
 }
 
@@ -248,6 +417,7 @@ function prefix(data: Validated): Record<string, unknown> {
 async function materialize(
   userId: string,
   data: OnboardingDraft["data"],
+  role: MemberRole,
 ): Promise<void> {
   const filter = userFilter(userId);
   if (!filter) throw new Error("materialize: malformed user id");
@@ -272,12 +442,27 @@ async function materialize(
             level: data.level,
             languages: data.languages,
             disciplines: data.disciplines,
-            skills: data.skills,
             yearsOfExperience: data.yearsOfExperience,
-            currentRole: data.currentRole,
             links: data.links,
             timeZone: data.timeZone,
             updatedAt: new Date(),
+            // Interviewer-only: what they can assess.
+            ...(role === "interviewer" ? { skills: data.skills } : {}),
+            // Optional for candidates, required for interviewers — either way
+            // only written when there is something to write.
+            ...(data.currentRole ? { currentRole: data.currentRole } : {}),
+            // The candidate half. Absent entirely on an interviewer profile.
+            ...(role === "candidate"
+              ? {
+                  candidate: {
+                    interviewTypes: data.interviewTypes ?? [],
+                    searchStage: data.searchStage ?? "exploring",
+                    ...(data.cvUrl ? { cvUrl: data.cvUrl } : {}),
+                    ...(data.jobUrl ? { jobUrl: data.jobUrl } : {}),
+                    ...(data.focus ? { focus: data.focus } : {}),
+                  },
+                }
+              : {}),
           },
         },
         { upsert: true, session },

@@ -60,5 +60,8 @@ export async function saveOnboardingStepAction(
       error: "Too many changes. Try again shortly.",
     };
 
-  return saveStep(user.id, stepId, input);
+  // Role decides which questions apply. Taken from the session, never the
+  // client — otherwise a candidate could post interviewer steps.
+  const role = user.isInterviewer ? "interviewer" : "candidate";
+  return saveStep(user.id, role, stepId, input);
 }

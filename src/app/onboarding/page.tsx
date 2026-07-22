@@ -67,7 +67,8 @@ export default async function OnboardingPage() {
 
   // Stage 2: the form steps. `getState` decides which one — a partly-filled
   // draft resumes where it stopped rather than starting over.
-  const state = await getState(user.id);
+  const role = user.isInterviewer ? "interviewer" : "candidate";
+  const state = await getState(user.id, role);
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-14 sm:py-20">
@@ -75,6 +76,7 @@ export default async function OnboardingPage() {
         <ThemeToggle />
       </div>
       <OnboardingFlow
+        role={role}
         initialStep={state.step}
         draft={state.draft}
         languages={LANGUAGES}

@@ -78,6 +78,8 @@ export async function saveProfileAction(formData: FormData) {
     current: formData.get("current") === "on",
     disciplines,
     skills,
+    // The link bar differs by side of the room; never trust the form for it.
+    memberRole: user!.isInterviewer ? "interviewer" : "candidate",
   });
 
   if (result.ok) {

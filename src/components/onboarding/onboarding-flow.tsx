@@ -5,6 +5,11 @@ import { ArrowLeft, ArrowUpRight, Check, Plus, X } from "lucide-react";
 
 import { saveOnboardingStepAction } from "@/app/onboarding/actions";
 import {
+  INTERVIEW_TYPES,
+  MAX_FOCUS_LENGTH,
+  SEARCH_STAGES,
+} from "@/content/candidate";
+import {
   DISCIPLINES,
   FIELDS,
   MAX_SKILLS,
@@ -15,15 +20,35 @@ import {
 import { cn } from "@/lib/utils";
 
 type Draft = Record<string, unknown>;
+type MemberRole = "candidate" | "interviewer";
 
-const STEPS = ["identity", "experience", "expertise", "trust"] as const;
-type StepId = (typeof STEPS)[number];
+/** Mirrors STEPS_FOR in server/onboarding/steps.ts. */
+const STEPS_FOR = {
+  interviewer: ["identity", "experience", "expertise", "trust"],
+  candidate: ["identity", "goal", "situation", "trust"],
+} as const;
 
-const TITLES: Record<StepId, string> = {
-  identity: "About you",
-  experience: "Your experience",
-  expertise: "What you can interview on",
-  trust: "How people know it's you",
+type StepId =
+  | "identity"
+  | "experience"
+  | "expertise"
+  | "goal"
+  | "situation"
+  | "trust";
+
+const TITLES: Record<MemberRole, Record<string, string>> = {
+  interviewer: {
+    identity: "About you",
+    experience: "Your experience",
+    expertise: "What you can interview on",
+    trust: "How people know it's you",
+  },
+  candidate: {
+    identity: "About you",
+    goal: "What you're practising for",
+    situation: "Where you are",
+    trust: "So your interviewer can prepare",
+  },
 };
 
 const LEVELS = [
@@ -45,18 +70,22 @@ const LINK_TYPES = [
 ];
 
 export function OnboardingFlow({
+  role,
   initialStep,
   draft,
   languages,
   suggestedName,
   timeZones,
 }: {
+  role: MemberRole;
   initialStep: StepId;
   draft: Draft;
   languages: readonly string[];
   suggestedName: string;
   timeZones: string[];
 }) {
+  const isCandidate = role === "candidate";
+  const STEPS = STEPS_FOR[role] as readonly StepId[];
   const [step, setStep] = useState<StepId>(initialStep);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -76,11 +105,12 @@ export function OnboardingFlow({
       ? ""
       : String(draft.yearsOfExperience),
   );
-  const role = draft.currentRole as
+  // Named for the draft field, not `role` — that's the member role prop above.
+  const currentRole = draft.currentRole as
     { company: string; role: string; current: boolean } | undefined;
-  const [company, setCompany] = useState(role?.company ?? "");
-  const [jobTitle, setJobTitle] = useState(role?.role ?? "");
-  const [current, setCurrent] = useState(role?.current ?? true);
+  const [company, setCompany] = useState(currentRole?.company ?? "");
+  const [jobTitle, setJobTitle] = useState(currentRole?.role ?? "");
+  const [current, setCurrent] = useState(currentRole?.current ?? true);
 
   const [disciplines, setDisciplines] = useState<string[]>(
     (draft.disciplines as string[]) ?? [],
@@ -96,11 +126,27 @@ export function OnboardingFlow({
     fieldsOf((draft.disciplines as string[]) ?? []),
   );
 
+  /* Candidate-only state. */
+  const [interviewTypes, setInterviewTypes] = useState<string[]>(
+    (draft.interviewTypes as string[]) ?? [],
+  );
+  const [searchStage, setSearchStage] = useState(
+    (draft.searchStage as string) ?? "",
+  );
+  const [cvUrl, setCvUrl] = useState((draft.cvUrl as string) ?? "");
+  const [jobUrl, setJobUrl] = useState((draft.jobUrl as string) ?? "");
+  const [focus, setFocus] = useState((draft.focus as string) ?? "");
+
+  const minLinks = isCandidate ? 1 : 2;
+
   const [links, setLinks] = useState<{ type: string; url: string }[]>(
-    (draft.links as { type: string; url: string }[]) ?? [
-      { type: "linkedin", url: "" },
-      { type: "github", url: "" },
-    ],
+    (draft.links as { type: string; url: string }[]) ??
+      (isCandidate
+        ? [{ type: "linkedin", url: "" }]
+        : [
+            { type: "linkedin", url: "" },
+            { type: "github", url: "" },
+          ]),
   );
   const [timeZone, setTimeZone] = useState(
     (draft.timeZone as string) ??
@@ -129,8 +175,25 @@ export function OnboardingFlow({
         };
       case "expertise":
         return { disciplines, skills };
+      case "goal":
+        return { disciplines, level, interviewTypes };
+      case "situation":
+        return {
+          yearsOfExperience: Number(years),
+          searchStage,
+          company,
+          role: jobTitle,
+          current,
+        };
       case "trust":
-        return { links: links.filter((l) => l.url.trim()), timeZone };
+        return {
+          links: links.filter((l) => l.url.trim()),
+          timeZone,
+          // Ignored server-side for interviewers; harmless to always send.
+          cvUrl,
+          jobUrl,
+          focus,
+        };
     }
   }
 
@@ -150,7 +213,10 @@ export function OnboardingFlow({
         // Seed the next step from the job title — only when they haven't
         // chosen anything yet, so going Back and returning never overwrites a
         // real selection with a guess.
-        if (res.next === "expertise" && disciplines.length === 0) {
+        if (
+          (res.next === "expertise" || res.next === "goal") &&
+          disciplines.length === 0
+        ) {
           const guess = inferDisciplines(jobTitle);
           if (guess.length) {
             setDisciplines(guess);
@@ -176,10 +242,10 @@ export function OnboardingFlow({
 
   return (
     <div>
-      <Progress index={index} />
+      <Progress index={index} total={STEPS.length} />
 
       <h1 className="display mt-6 text-3xl font-semibold sm:text-4xl">
-        {TITLES[step]}
+        {TITLES[role][step]}
       </h1>
 
       <div className="mt-7">
@@ -187,7 +253,11 @@ export function OnboardingFlow({
           <>
             <Field
               label="Your full name"
-              hint="This is what candidates will see."
+              hint={
+                isCandidate
+                  ? "This is what your interviewer will see."
+                  : "This is what candidates will see."
+              }
             >
               <input
                 value={fullName}
@@ -197,14 +267,133 @@ export function OnboardingFlow({
               />
             </Field>
             <Field
-              label="Languages you can interview in"
-              hint="Pick every language you're comfortable running an interview in."
+              label={
+                isCandidate
+                  ? "Languages you can be interviewed in"
+                  : "Languages you can interview in"
+              }
+              hint={
+                isCandidate
+                  ? "Pick every language you'd be comfortable interviewing in."
+                  : "Pick every language you're comfortable running an interview in."
+              }
             >
               <Chips
                 options={languages.map((l) => ({ value: l, label: l }))}
                 selected={langs}
                 onToggle={(v) => toggle(langs, v, setLangs)}
               />
+            </Field>
+          </>
+        )}
+
+        {step === "goal" && (
+          <>
+            <Field
+              label="What are you practising for?"
+              hint="Pick every area you want to be interviewed on."
+            >
+              <Chips
+                options={disciplinesInFields(
+                  fields.length ? fields : FIELDS.map((f) => f.slug),
+                ).map((d) => ({ value: d.slug, label: d.name }))}
+                selected={disciplines}
+                onToggle={(v) => toggle(disciplines, v, setDisciplines)}
+              />
+            </Field>
+
+            <Field
+              label="The level you're interviewing at"
+              hint="Where you're aiming, not where you are today — a career switcher's target is what matters."
+            >
+              <Chips
+                options={LEVELS}
+                selected={level ? [level] : []}
+                onToggle={(v) => setLevel(v)}
+              />
+            </Field>
+
+            <Field
+              label="What kind of interview do you want?"
+              hint="Pick as many as you like. This is what we match you on."
+            >
+              <div className="space-y-2">
+                {INTERVIEW_TYPES.map((t) => (
+                  <ChoiceCard
+                    key={t.slug}
+                    label={t.label}
+                    hint={t.hint}
+                    selected={interviewTypes.includes(t.slug)}
+                    onSelect={() =>
+                      toggle(interviewTypes, t.slug, setInterviewTypes)
+                    }
+                  />
+                ))}
+              </div>
+            </Field>
+          </>
+        )}
+
+        {step === "situation" && (
+          <>
+            <Field label="Years of experience">
+              <input
+                type="number"
+                min={0}
+                max={50}
+                inputMode="numeric"
+                value={years}
+                onChange={(e) => setYears(e.target.value)}
+                className={cn(inputClass, "max-w-32")}
+              />
+            </Field>
+
+            <Field
+              label="Where are you in your search?"
+              hint="While volunteers are scarce, this is how we decide who gets a slot first."
+            >
+              <div className="space-y-2">
+                {SEARCH_STAGES.map((s) => (
+                  <ChoiceCard
+                    key={s.slug}
+                    label={s.label}
+                    hint={s.hint}
+                    selected={searchStage === s.slug}
+                    onSelect={() => setSearchStage(s.slug)}
+                  />
+                ))}
+              </div>
+            </Field>
+
+            <Field
+              label="Current role"
+              hint="Optional — plenty of people here are between jobs, and that's often the point."
+            >
+              <div className="space-y-2">
+                <input
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="Company"
+                  className={inputClass}
+                  autoComplete="organization"
+                />
+                <input
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  placeholder="Job title"
+                  className={inputClass}
+                  autoComplete="organization-title"
+                />
+              </div>
+              <label className="mt-3 flex items-center gap-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={current}
+                  onChange={(e) => setCurrent(e.target.checked)}
+                  className="size-4 accent-[var(--vermilion)]"
+                />
+                I still work here
+              </label>
             </Field>
           </>
         )}
@@ -401,8 +590,12 @@ export function OnboardingFlow({
         {step === "trust" && (
           <>
             <Field
-              label="Your public profiles"
-              hint="At least two. This is how members know who they're talking to."
+              label={isCandidate ? "A link to you" : "Your public profiles"}
+              hint={
+                isCandidate
+                  ? "One is enough — a CV, LinkedIn, GitHub or portfolio. Your interviewer is giving up an evening; this is how they know who they're meeting."
+                  : "At least two. This is how members know who they're talking to."
+              }
             >
               <div className="space-y-2">
                 {links.map((l, i) => (
@@ -424,7 +617,7 @@ export function OnboardingFlow({
                       placeholder="linkedin.com/in/you"
                       className={cn(inputClass, "h-12")}
                     />
-                    {links.length > 2 && (
+                    {links.length > minLinks && (
                       <button
                         type="button"
                         onClick={() =>
@@ -464,6 +657,55 @@ export function OnboardingFlow({
                 ))}
               </select>
             </Field>
+
+            {/* Everything below is optional context. It exists so the person
+                giving up an evening can walk in prepared — never as a gate. */}
+            {isCandidate && (
+              <>
+                <Field
+                  label="Your CV"
+                  hint="A link, not a file — Google Drive, Notion, a PDF anywhere. Optional."
+                >
+                  <input
+                    value={cvUrl}
+                    onChange={(e) => setCvUrl(e.target.value)}
+                    placeholder="drive.google.com/…"
+                    inputMode="url"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field
+                  label="The job you're aiming at"
+                  hint="Link a job description and your interviewer can rehearse the real thing. Optional."
+                >
+                  <input
+                    value={jobUrl}
+                    onChange={(e) => setJobUrl(e.target.value)}
+                    placeholder="careers.example.com/…"
+                    inputMode="url"
+                    className={inputClass}
+                  />
+                </Field>
+
+                <Field
+                  label="What do you most want help with?"
+                  hint="The one thing you'd fix if you could. This is what your interviewer reads first."
+                >
+                  <textarea
+                    value={focus}
+                    onChange={(e) => setFocus(e.target.value)}
+                    maxLength={MAX_FOCUS_LENGTH}
+                    rows={3}
+                    placeholder="I freeze on system design questions and ramble instead of asking about scale."
+                    className={cn(inputClass, "h-auto py-2.5")}
+                  />
+                  <p className="mt-1.5 text-end text-xs text-ink-soft tabular-nums">
+                    {focus.length}/{MAX_FOCUS_LENGTH}
+                  </p>
+                </Field>
+              </>
+            )}
           </>
         )}
       </div>
@@ -534,16 +776,16 @@ export function OnboardingFlow({
 const inputClass =
   "h-12 w-full rounded-none border-[1.5px] border-ink bg-paper px-3 text-base text-ink outline-none transition-shadow placeholder:text-ink-soft focus-visible:shadow-[4px_4px_0_0_var(--vermilion)]";
 
-function Progress({ index }: { index: number }) {
+function Progress({ index, total }: { index: number; total: number }) {
   return (
     <div>
       <p className="stamp-label text-ink-soft">
-        Step {index + 1} of {STEPS.length}
+        Step {index + 1} of {total}
       </p>
       <div className="mt-2 flex gap-1.5" aria-hidden>
-        {STEPS.map((s, i) => (
+        {Array.from({ length: total }, (_, i) => (
           <span
-            key={s}
+            key={i}
             className={cn(
               "h-1 flex-1 transition-colors",
               i <= index ? "bg-vermilion" : "bg-ink/15",
@@ -570,6 +812,63 @@ function Field({
       {hint && <p className="mt-1 text-sm text-ink-soft">{hint}</p>}
       <div className="mt-2.5">{children}</div>
     </div>
+  );
+}
+
+/**
+ * A full-width choice with a line of explanation under it.
+ *
+ * Chips work when the label is self-explanatory ("Mid", "English"). Interview
+ * types and search stages are not — "Role-specific" and "Just exploring" both
+ * need a sentence, and a sentence doesn't fit in a chip.
+ *
+ * Named ChoiceCard, not Option: `Option` is a DOM global (HTMLOptionElement)
+ * and shadowing it makes TypeScript resolve the constructor instead.
+ */
+function ChoiceCard({
+  label,
+  hint,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  hint: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        "flex w-full items-start gap-3 border-[1.5px] p-3.5 text-start transition-all",
+        selected
+          ? "border-vermilion-deep shadow-[3px_3px_0_0_var(--vermilion)]"
+          : "border-ink/25 hover:border-ink",
+      )}
+    >
+      <span
+        className={cn(
+          "mt-0.5 flex size-4 shrink-0 items-center justify-center border-[1.5px]",
+          selected ? "border-vermilion-deep bg-vermilion-deep" : "border-ink/40",
+        )}
+        aria-hidden
+      >
+        {selected && <Check className="size-3 text-chalk" strokeWidth={3} />}
+      </span>
+      <span className="min-w-0">
+        <span
+          className={cn(
+            "block text-sm font-medium",
+            selected && "text-vermilion-deep",
+          )}
+        >
+          {label}
+        </span>
+        <span className="mt-0.5 block text-sm text-ink-soft">{hint}</span>
+      </span>
+    </button>
   );
 }
 

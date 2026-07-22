@@ -145,7 +145,8 @@ export default async function DashboardOverview() {
   ]);
 
   const firstName = user.name?.split(" ")[0] ?? "there";
-  const checklist = profileChecklist(profile);
+  const role = user.isInterviewer ? "interviewer" : "candidate";
+  const checklist = profileChecklist(profile, role);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -379,19 +380,6 @@ function CandidateView({
 
       <Checklist items={checklist} />
       <SupplyLine interviewers={interviewers} waiting={waiting} />
-
-      <section className="press mt-4 bg-panel p-6 text-panel-fg sm:p-9">
-        <h2 className="display text-[clamp(1.375rem,4vw,1.75rem)] font-semibold">
-          Someone once gave you an hour.
-        </h2>
-        <p className="mt-3 max-w-lg leading-relaxed text-panel-fg/80">
-          If you have done this job, one hour a month genuinely moves the queue
-          — and it&apos;s the fastest way to make the number above go up.
-        </p>
-        <div className="mt-6">
-          <BecomeInterviewer />
-        </div>
-      </section>
     </>
   );
 }

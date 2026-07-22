@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -28,6 +29,7 @@ export type UserMenuProps = {
 
 export function UserMenu({ name, email, image, isAdmin }: UserMenuProps) {
   const router = useRouter();
+  const [imageFailed, setImageFailed] = useState(false);
   const initial = (name || email || "?").trim().charAt(0).toUpperCase();
 
   return (
@@ -38,11 +40,24 @@ export function UserMenu({ name, email, image, isAdmin }: UserMenuProps) {
           aria-label="Account menu"
           className="inline-flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border-[1.5px] border-ink/25 bg-card transition-colors hover:border-ink"
         >
-          {image ? (
+          {image && !imageFailed ? (
             // Google avatars are remote; plain <img> avoids next/image host config.
+            //
+            // referrerPolicy is a privacy measure, not a fix: without it every
+            // avatar load tells Google which dashboard URL the user is on.
+            //
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt="" className="size-full object-cover" />
+            <img
+              src={image}
+              alt=""
+              referrerPolicy="no-referrer"
+              onError={() => setImageFailed(true)}
+              className="size-full object-cover"
+            />
           ) : (
+            // A plain <img> has no fallback of its own — without this, any
+            // failure (revoked avatar, offline, rate limit) shows a broken icon
+            // rather than the initial.
             <span className="text-sm font-medium">{initial}</span>
           )}
         </button>

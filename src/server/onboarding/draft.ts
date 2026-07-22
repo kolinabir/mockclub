@@ -27,6 +27,13 @@ export type OnboardingDraft = {
     skills?: string[];
     links?: ProfileLink[];
     timeZone?: string;
+
+    /* Candidate-only. An interviewer's draft never carries these. */
+    interviewTypes?: string[];
+    searchStage?: string;
+    cvUrl?: string;
+    jobUrl?: string;
+    focus?: string;
   };
   createdAt: Date;
   updatedAt: Date;

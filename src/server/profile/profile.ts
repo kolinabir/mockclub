@@ -4,6 +4,11 @@ import { isValidTimeZone } from "@/lib/time";
 import { getDb } from "@/server/db/mongo";
 
 import {
+  INTERVIEW_TYPE_SLUGS,
+  MAX_FOCUS_LENGTH,
+  SEARCH_STAGE_SLUGS,
+} from "@/content/candidate";
+import {
   DISCIPLINE_SLUGS,
   KNOWN_SKILLS,
   MAX_CUSTOM_SKILL_LENGTH,
@@ -49,8 +54,28 @@ export type LinkType = (typeof LINK_TYPES)[number];
 
 export type ProfileLink = { type: LinkType; url: string };
 
-/** Two public profiles is the bar — it's how members know who they're talking to. */
+/**
+ * Two public profiles is the bar for an INTERVIEWER — it's how a candidate
+ * knows who they're about to spend an hour with, and it's the credential the
+ * whole thing rests on.
+ */
 export const MIN_PROFILE_LINKS = 2;
+
+/**
+ * Candidates need one, not two.
+ *
+ * They are the abundant side, and the two-link bar is an interviewer's
+ * credential, not a candidate's. But it isn't zero: an interviewer's hour is
+ * the scarce resource here, and one real link is the only thing standing
+ * between a throwaway account and a volunteer's wasted evening.
+ */
+export const MIN_CANDIDATE_LINKS = 1;
+
+/** Which side of the room someone is on. Decides the rules, not the schema. */
+export type MemberRole = "candidate" | "interviewer";
+
+export const minLinksFor = (role: MemberRole) =>
+  role === "interviewer" ? MIN_PROFILE_LINKS : MIN_CANDIDATE_LINKS;
 
 /**
  * Hosts we expect per type, so a link can't be mislabelled (someone tagging a
@@ -122,6 +147,31 @@ export function normalizeLink(
   return { ok: true, link: { type: type as LinkType, url: url.toString() } };
 }
 
+/**
+ * The candidate half of a profile.
+ *
+ * Separate sub-document rather than more optional top-level fields: it keeps
+ * "what this person wants" from bleeding into "what this person can assess",
+ * and it means a member who is both keeps two coherent halves instead of one
+ * ambiguous merge.
+ *
+ * Note what is NOT here — salary, current compensation, demographics, phone,
+ * visa status. None of it feeds matching, all of it would be PII to defend,
+ * and comp data in particular invites a dynamic this project doesn't want.
+ */
+export type CandidateProfile = {
+  /** What kinds of interview they want to practise. */
+  interviewTypes: string[];
+  /** How far along their job search is — the prioritisation signal. */
+  searchStage: string;
+  /** A LINK to a CV, never an upload — see `validateOptionalUrl`. */
+  cvUrl?: string;
+  /** The job description they're aiming at, if they have one. */
+  jobUrl?: string;
+  /** "What do you most want help with?" — what an interviewer reads first. */
+  focus?: string;
+};
+
 export type ProfileDoc = {
   userId: string;
   trackSlug: string;
@@ -137,7 +187,14 @@ export type ProfileDoc = {
 
   /* Set by onboarding (src/server/onboarding). Optional because profiles
      created before onboarding shipped predate them. */
-  /** Discipline slugs from content/skills.ts, e.g. ["frontend","backend"]. */
+  /** Set only for candidates. Absent on an interviewer-only profile. */
+  candidate?: CandidateProfile;
+  /**
+   * Discipline slugs from content/skills.ts, e.g. ["frontend","backend"].
+   * For an interviewer: what they can assess. For a candidate: what they want
+   * to be assessed on. Same vocabulary either way, so matching is a set
+   * intersection rather than a fuzzy text comparison.
+   */
   disciplines?: string[];
   /** Skill names — taxonomy entries plus capped custom ones. */
   skills?: string[];
@@ -164,8 +221,17 @@ function profiles() {
   return c;
 }
 
+/**
+ * `_id` is projected OUT deliberately.
+ *
+ * `ProfileDoc` never declared it, so the type was already lying about what came
+ * back — and the moment a page handed the result to a Client Component, React
+ * refused it: an ObjectId is a class instance with a toJSON method, not a plain
+ * object, and only plain objects cross that boundary. Dropping it here fixes
+ * every caller at once instead of asking each page to remember to strip it.
+ */
 export async function getProfile(userId: string): Promise<ProfileDoc | null> {
-  return profiles().findOne({ userId });
+  return profiles().findOne({ userId }, { projection: { _id: 0 } });
 }
 
 export async function saveProfile(
@@ -183,8 +249,14 @@ export async function saveProfile(
     current?: unknown;
     disciplines?: unknown;
     skills?: unknown;
+    /** Which link bar applies. Comes from the session, never the form.
+     *  Named `memberRole` because `role` in this input is the JOB TITLE. */
+    memberRole?: MemberRole;
   },
 ): Promise<SaveResult> {
+  const minLinks = minLinksFor(
+    input.memberRole === "interviewer" ? "interviewer" : "candidate",
+  );
   const { trackSlug, level, languages, timeZone } = input;
 
   if (typeof trackSlug !== "string" || !TRACK_SLUGS.has(trackSlug))
@@ -237,10 +309,13 @@ export async function saveProfile(
     links.push(res.link);
   }
 
-  if (links.length < MIN_PROFILE_LINKS)
+  if (links.length < minLinks)
     return {
       ok: false,
-      error: `Add at least ${MIN_PROFILE_LINKS} links so people know who you are.`,
+      error:
+        minLinks === 1
+          ? "Add a link — a CV, LinkedIn, GitHub or portfolio — so people know who you are."
+          : `Add at least ${minLinks} links so people know who you are.`,
     };
 
   // Optional on purpose: profiles created before onboarding shipped have none
@@ -270,9 +345,15 @@ export async function saveProfile(
     if (!d.ok) return d;
     extra.disciplines = d.value;
 
-    const sk = validateSkills(input.skills);
-    if (!sk.ok) return sk;
-    extra.skills = sk.value;
+    // Skills are what an interviewer can ASSESS, and only interviewers are
+    // asked for them. Demanding them alongside disciplines meant a candidate
+    // saving their profile was told to "pick at least one skill you're
+    // comfortable assessing" — for a form that never offered any.
+    if (input.memberRole === "interviewer") {
+      const sk = validateSkills(input.skills);
+      if (!sk.ok) return sk;
+      extra.skills = sk.value;
+    }
   }
 
   await profiles().updateOne(
@@ -307,16 +388,17 @@ export async function saveProfile(
  */
 export type ChecklistItem = { key: string; label: string; done: boolean };
 
-export function profileChecklist(profile: ProfileDoc | null): ChecklistItem[] {
-  return [
-    {
-      key: "track",
-      label: "Track and level",
-      done: Boolean(profile?.trackSlug && profile?.level),
-    },
+export function profileChecklist(
+  profile: ProfileDoc | null,
+  role: MemberRole = "interviewer",
+): ChecklistItem[] {
+  const shared: ChecklistItem[] = [
     {
       key: "languages",
-      label: "Languages you can interview in",
+      label:
+        role === "interviewer"
+          ? "Languages you can interview in"
+          : "Languages you can be interviewed in",
       done: (profile?.languages?.length ?? 0) > 0,
     },
     {
@@ -326,9 +408,41 @@ export function profileChecklist(profile: ProfileDoc | null): ChecklistItem[] {
     },
     {
       key: "links",
-      label: `${MIN_PROFILE_LINKS} public profiles`,
-      done: (profile?.links?.length ?? 0) >= MIN_PROFILE_LINKS,
+      label:
+        role === "interviewer"
+          ? `${MIN_PROFILE_LINKS} public profiles`
+          : "A CV, LinkedIn or GitHub link",
+      done: (profile?.links?.length ?? 0) >= minLinksFor(role),
     },
+  ];
+
+  if (role === "candidate")
+    return [
+      {
+        key: "disciplines",
+        label: "What you're practising for",
+        done: (profile?.disciplines?.length ?? 0) > 0,
+      },
+      {
+        key: "interviewTypes",
+        label: "The kinds of interview you want",
+        done: (profile?.candidate?.interviewTypes?.length ?? 0) > 0,
+      },
+      {
+        key: "searchStage",
+        label: "Where you are in your search",
+        done: Boolean(profile?.candidate?.searchStage),
+      },
+      ...shared,
+    ];
+
+  return [
+    {
+      key: "track",
+      label: "Track and level",
+      done: Boolean(profile?.trackSlug && profile?.level),
+    },
+    ...shared,
     {
       key: "disciplines",
       label: "Areas you can cover",
@@ -419,6 +533,66 @@ export function validateDisciplines(v: unknown): FieldResult<string[]> {
   if (list.length === 0)
     return { ok: false, error: "Pick at least one area you can interview in." };
   return { ok: true, value: list };
+}
+
+export function validateInterviewTypes(v: unknown): FieldResult<string[]> {
+  const list = Array.isArray(v)
+    ? [
+        ...new Set(
+          v.filter(
+            (t): t is string =>
+              typeof t === "string" && INTERVIEW_TYPE_SLUGS.has(t),
+          ),
+        ),
+      ]
+    : [];
+  if (list.length === 0)
+    return {
+      ok: false,
+      error: "Pick at least one kind of interview you want to practise.",
+    };
+  return { ok: true, value: list };
+}
+
+export function validateSearchStage(v: unknown): FieldResult<string> {
+  if (typeof v !== "string" || !SEARCH_STAGE_SLUGS.has(v))
+    return { ok: false, error: "Tell us where you are in your search." };
+  return { ok: true, value: v };
+}
+
+/**
+ * An optional http(s) link, or nothing.
+ *
+ * Goes through `normalizeLink` so the javascript:/data: guard has exactly one
+ * home — these render as clickable links for the interviewer who picks up the
+ * session. `website` accepts any host, which is what a CV or a job posting
+ * needs.
+ */
+export function validateOptionalUrl(
+  v: unknown,
+  label: string,
+): FieldResult<string | undefined> {
+  if (v === undefined || v === null || (typeof v === "string" && !v.trim()))
+    return { ok: true, value: undefined };
+
+  const result = normalizeLink("website", v);
+  if (!result.ok) return { ok: false, error: `That ${label} isn't a valid URL.` };
+  return { ok: true, value: result.link.url };
+}
+
+export function validateFocus(v: unknown): FieldResult<string | undefined> {
+  if (v === undefined || v === null || (typeof v === "string" && !v.trim()))
+    return { ok: true, value: undefined };
+  if (typeof v !== "string")
+    return { ok: false, error: "That doesn't look like text." };
+
+  const s = v.trim().replace(/\s+/g, " ");
+  if (s.length > MAX_FOCUS_LENGTH)
+    return {
+      ok: false,
+      error: `Keep it under ${MAX_FOCUS_LENGTH} characters.`,
+    };
+  return { ok: true, value: s };
 }
 
 export function validateSkills(v: unknown): FieldResult<string[]> {

@@ -179,7 +179,14 @@ export function DashboardSidebar({ user }: { user: SidebarUser }) {
       <SidebarFooter className="gap-0 border-t border-sidebar-border p-0">
         <div className="flex items-center gap-2.5 px-2 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
           <Avatar className="size-8 shrink-0 rounded-none border-[1.5px] border-ink">
-            <AvatarImage src={user.image ?? undefined} alt="" />
+            {/* no-referrer so loading an avatar doesn't tell the image host
+                which dashboard page the user is on. Radix already falls back
+                to initials if the load fails for any reason. */}
+            <AvatarImage
+              src={user.image ?? undefined}
+              alt=""
+              referrerPolicy="no-referrer"
+            />
             <AvatarFallback className="rounded-none bg-paper-deep text-xs font-semibold text-ink">
               {initials}
             </AvatarFallback>
