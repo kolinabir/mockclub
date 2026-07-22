@@ -297,6 +297,51 @@ export async function saveProfile(
   return { ok: true };
 }
 
+/**
+ * What's still missing from a profile, as data.
+ *
+ * A dashboard that says "finish your profile" to someone who is 5/6 done is
+ * just nagging. The profile document already knows exactly which fields are
+ * absent, so say which ones — pure, so the answer can't drift from the
+ * validation rules above.
+ */
+export type ChecklistItem = { key: string; label: string; done: boolean };
+
+export function profileChecklist(profile: ProfileDoc | null): ChecklistItem[] {
+  return [
+    {
+      key: "track",
+      label: "Track and level",
+      done: Boolean(profile?.trackSlug && profile?.level),
+    },
+    {
+      key: "languages",
+      label: "Languages you can interview in",
+      done: (profile?.languages?.length ?? 0) > 0,
+    },
+    {
+      key: "timeZone",
+      label: "Your time zone",
+      done: Boolean(profile?.timeZone),
+    },
+    {
+      key: "links",
+      label: `${MIN_PROFILE_LINKS} public profiles`,
+      done: (profile?.links?.length ?? 0) >= MIN_PROFILE_LINKS,
+    },
+    {
+      key: "disciplines",
+      label: "Areas you can cover",
+      done: (profile?.disciplines?.length ?? 0) > 0,
+    },
+    {
+      key: "skills",
+      label: "Skills you can assess",
+      done: (profile?.skills?.length ?? 0) > 0,
+    },
+  ];
+}
+
 /** Interviewer supply — what gates opening booking. */
 export async function countInterviewers(): Promise<number> {
   // Anchored to comma boundaries: an unanchored /interviewer/ would also match

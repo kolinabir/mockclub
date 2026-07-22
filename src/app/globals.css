@@ -146,7 +146,14 @@
   --font-body: var(--font-archivo);
   --font-stamp: var(--font-mono-stamp);
   --color-paper: var(--paper);
+  /* These two were defined in :root but never exposed here, so `text-ink-soft`
+     and `bg-paper-deep` generated NO css at all — 102 uses of the muted text
+     colour were silently rendering at full ink, which is why nothing had any
+     typographic hierarchy. Tailwind v4 only emits a utility for a variable it
+     can see under @theme; a bare `--ink-soft` in :root is invisible to it. */
+  --color-paper-deep: var(--paper-deep);
   --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
   --color-vermilion: var(--vermilion);
   --color-vermilion-deep: var(--vermilion-deep);
   --color-vermilion-strong: var(--vermilion-strong);
@@ -384,12 +391,27 @@
     border-radius: 0;
   }
 
-  /* Group labels read as the same stamped caption used across the site. */
+  /* Group labels are the same stamped caption used across the site, so the
+     dashboard chrome reads as one voice with the marketing pages. */
   [data-slot="sidebar-group-label"] {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
+    font-family: var(--font-stamp), ui-monospace, monospace;
+    font-size: 0.625rem;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
+    color: var(--ink-soft);
+    height: auto;
+    padding-block: 0.5rem;
+  }
+
+  /* Roomier rows: 16px type at 2.25rem is cramped next to the editorial
+     type scale everywhere else. */
+  [data-slot="sidebar-menu-button"] {
+    height: 2.5rem;
+    gap: 0.625rem;
+    font-size: 0.9375rem;
+  }
+
+  [data-slot="sidebar-menu-button"] svg {
     color: var(--ink-soft);
   }
 
@@ -399,9 +421,32 @@
     font-weight: 600;
   }
 
+  [data-slot="sidebar-menu-button"][data-active="true"] svg {
+    color: var(--vermilion-deep);
+  }
+
   /* RTL is enabled (Arabic, Urdu), so the spine must flip with the text. */
   [dir="rtl"] [data-slot="sidebar-menu-button"][data-active="true"] {
     box-shadow: inset -3px 0 0 0 var(--vermilion);
+  }
+
+  /* Collapsed to icons, a 3px inset spine on a 2rem button is a smudge —
+     the whole tile carries the state instead. */
+  [data-collapsible="icon"] [data-slot="sidebar-menu-button"][data-active="true"],
+  [dir="rtl"] [data-collapsible="icon"] [data-slot="sidebar-menu-button"][data-active="true"] {
+    box-shadow: none;
+    background: var(--vermilion-strong);
+    color: var(--chalk);
+  }
+
+  [data-collapsible="icon"] [data-slot="sidebar-menu-button"][data-active="true"] svg {
+    color: var(--chalk);
+  }
+
+  /* The drag rail is invisible by default in shadcn; give it the house rule
+     so the panel edge looks deliberate and its hit area is discoverable. */
+  [data-slot="sidebar-rail"]:hover::after {
+    background: var(--vermilion);
   }
 
   @media (prefers-reduced-motion: reduce) {

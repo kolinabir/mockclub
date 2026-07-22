@@ -481,6 +481,22 @@ export async function generateSlotsForAll(): Promise<{
   return { members: userIds.length, created, removed, failed };
 }
 
+/**
+ * The soonest hour someone could book, or null.
+ *
+ * A findOne with a sort rather than reading `slotsFor` and taking [0] — the
+ * horizon can hold a few hundred slots per member and the dashboard needs one.
+ */
+export async function nextOpenSlot(userId: string): Promise<Date | null> {
+  const { slots } = collections();
+  await releaseExpiredHolds(userId);
+  const slot = await slots.findOne(
+    { userId, status: "open", startsAt: { $gte: new Date() } },
+    { sort: { startsAt: 1 }, projection: { startsAt: 1 } },
+  );
+  return slot?.startsAt ?? null;
+}
+
 /** How many bookable hours this member currently has. Drives "are you listed?". */
 export async function countOpenSlots(userId: string): Promise<number> {
   const { slots } = collections();

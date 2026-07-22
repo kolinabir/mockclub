@@ -38,14 +38,20 @@ export default async function DashboardLayout({
           user={{
             name: user.name,
             email: user.email,
+            image: user.image,
             isAdmin: user.isAdmin,
             isInterviewer: user.isInterviewer,
           }}
         />
 
         <SidebarInset>
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-ink/15 bg-paper/90 px-4 backdrop-blur-sm">
-            <SidebarTrigger className="-ms-1" />
+          {/* Same construction as the marketing header (sticky, hairline rule,
+              translucent paper) so crossing into the dashboard doesn't feel
+              like a different product. */}
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-ink/15 bg-paper/90 px-4 backdrop-blur-sm sm:px-6">
+            {/* On desktop the sidebar carries its own collapse control; this one
+                is what opens the sheet on mobile, where there is no rail. */}
+            <SidebarTrigger className="-ms-1 size-9 rounded-none border border-ink/20 text-ink hover:border-ink hover:bg-transparent md:hidden" />
             {/* The dashboard has its own header, so it needs its own toggle:
                 the marketing ThemeToggle lives in header-nav and never renders
                 here, leaving dark mode unreachable on every /dashboard route. */}
@@ -60,7 +66,12 @@ export default async function DashboardLayout({
             </div>
           </header>
 
-          <div className="flex-1 px-4 py-8 sm:px-8 sm:py-10">{children}</div>
+          {/* min-w-0 matters: without it a wide child (a table, a long code
+              string) makes the whole inset grow and the page scrolls sideways
+              instead of the child doing so. */}
+          <div className="min-w-0 flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-10">
+            {children}
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
