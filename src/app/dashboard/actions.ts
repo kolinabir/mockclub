@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import { getCurrentUser } from "@/lib/session";
-import { saveAvailability, saveSettings } from "@/server/availability/availability";
-import { getDb } from "@/server/db/mongo";
+import { updateUser } from "@/server/users/users";
+import {
+  saveAvailability,
+  saveSettings,
+} from "@/server/availability/availability";
 import { saveProfile } from "@/server/profile/profile";
 import { rateLimit } from "@/server/rate-limit";
 
@@ -33,7 +36,11 @@ async function throttle(userId: string, name: string): Promise<Fail | null> {
 /** Session + throttle, the two checks every action needs. */
 async function guard(name: string) {
   const user = await getCurrentUser();
-  if (!user) return { user: null, fail: { ok: false, error: "Please sign in again." } as Fail };
+  if (!user)
+    return {
+      user: null,
+      fail: { ok: false, error: "Please sign in again." } as Fail,
+    };
 
   const tooMany = await throttle(user.id, name);
   if (tooMany) return { user: null, fail: tooMany };
@@ -70,7 +77,10 @@ export async function saveAvailabilityAction(formData: FormData) {
   const { user, fail } = await guard("availability");
   if (fail) return fail;
   if (!user!.isInterviewer)
-    return { ok: false as const, error: "Only interviewers can set availability." };
+    return {
+      ok: false as const,
+      error: "Only interviewers can set availability.",
+    };
 
   let rules: { days: unknown; startTime: unknown; endTime: unknown }[] = [];
   try {
@@ -112,9 +122,14 @@ export async function becomeInterviewerAction() {
 
   const roles = [...new Set([...user!.roles, "interviewer"])];
   // Roles are a comma-separated string — Better Auth's native multi-role format.
-  await getDb()
-    .collection("user")
-    .updateOne({ id: user!.id }, { $set: { role: roles.join(",") } });
+  try {
+    await updateUser(user!.id, { role: roles.join(",") });
+  } catch {
+    return {
+      ok: false as const,
+      error: "Couldn't save that. Please try again.",
+    };
+  }
 
   revalidatePath("/dashboard");
   return { ok: true as const };

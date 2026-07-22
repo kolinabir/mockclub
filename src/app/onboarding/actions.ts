@@ -3,7 +3,10 @@
 import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/session";
-import { completeOnboarding } from "@/server/onboarding/onboarding";
+import {
+  completeOnboarding,
+  hasOnboarded,
+} from "@/server/onboarding/onboarding";
 import { rateLimit } from "@/server/rate-limit";
 
 export async function chooseRoleAction(formData: FormData) {
@@ -19,6 +22,11 @@ export async function chooseRoleAction(formData: FormData) {
       ok: false as const,
       error: "Too many attempts. Try again shortly.",
     };
+
+  // The page redirects away once onboarded, but a server action is a public
+  // endpoint — without this, replaying it would reset the caller's membership
+  // role. Changing roles later belongs to the dashboard, not to onboarding.
+  if (await hasOnboarded(user.id)) redirect("/dashboard");
 
   const result = await completeOnboarding(
     user.id,

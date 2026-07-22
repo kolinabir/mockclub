@@ -6,7 +6,7 @@ import { ArrowUpRight, Check } from "lucide-react";
 import { chooseRoleAction } from "@/app/onboarding/actions";
 import { cn } from "@/lib/utils";
 
-type Choice = "interviewer" | "both" | "candidate";
+type Choice = "interviewer" | "candidate";
 
 export function RoleChoice({
   interviewers,
@@ -42,11 +42,6 @@ export function RoleChoice({
       body: "You've done the job and sat on the hiring side. Run mock interviews for people breaking in — your questions, your format, one hour at a time.",
       primary: true,
       badge: "Most needed",
-    },
-    {
-      value: "both",
-      title: "Both",
-      body: "Practise for your own next step, and give an hour to someone earlier in theirs. Most of us are here for both reasons.",
     },
     {
       value: "candidate",
