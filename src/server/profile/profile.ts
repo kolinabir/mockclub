@@ -2,6 +2,12 @@ import "server-only";
 
 import { getDb } from "@/server/db/mongo";
 
+import {
+  DISCIPLINE_SLUGS,
+  KNOWN_SKILLS,
+  MAX_CUSTOM_SKILL_LENGTH,
+  MAX_SKILLS,
+} from "@/content/skills";
 import { OTHER_TRACK_SLUG, TRACKS } from "@/content/tracks";
 
 /**
@@ -172,6 +178,12 @@ export async function saveProfile(
     languages: unknown;
     timeZone: unknown;
     links?: unknown;
+    yearsOfExperience?: unknown;
+    company?: unknown;
+    role?: unknown;
+    current?: unknown;
+    disciplines?: unknown;
+    skills?: unknown;
   },
 ): Promise<SaveResult> {
   const { trackSlug, level, languages, timeZone } = input;
@@ -232,6 +244,38 @@ export async function saveProfile(
       error: `Add at least ${MIN_PROFILE_LINKS} links so people know who you are.`,
     };
 
+  // Optional on purpose: profiles created before onboarding shipped have none
+  // of these, and editing a language shouldn't force someone to fill them in.
+  const extra: Partial<ProfileDoc> = {};
+
+  if (input.yearsOfExperience !== undefined && input.yearsOfExperience !== "") {
+    const years = validateYears(input.yearsOfExperience);
+    if (!years.ok) return years;
+    extra.yearsOfExperience = years.value;
+  }
+  if (input.company !== undefined || input.role !== undefined) {
+    const hasAny =
+      String(input.company ?? "").trim() || String(input.role ?? "").trim();
+    if (hasAny) {
+      const role = validateCurrentRole({
+        company: input.company,
+        role: input.role,
+        current: input.current,
+      });
+      if (!role.ok) return role;
+      extra.currentRole = role.value;
+    }
+  }
+  if (Array.isArray(input.disciplines) && input.disciplines.length) {
+    const d = validateDisciplines(input.disciplines);
+    if (!d.ok) return d;
+    extra.disciplines = d.value;
+
+    const sk = validateSkills(input.skills);
+    if (!sk.ok) return sk;
+    extra.skills = sk.value;
+  }
+
   await getDb()
     .collection<ProfileDoc>("profile")
     .updateOne(
@@ -244,6 +288,7 @@ export async function saveProfile(
           links,
           timeZone,
           updatedAt: new Date(),
+          ...extra,
           ...(customTrack ? { customTrack } : {}),
         },
         // Drop a stale custom value when switching back to a real track.
@@ -262,4 +307,99 @@ export async function countInterviewers(): Promise<number> {
   return getDb()
     .collection("user")
     .countDocuments({ role: /(^|,)\s*interviewer\s*(,|$)/ });
+}
+
+/* ---------------------------------------------------------------------------
+ * Shared field validators.
+ *
+ * Onboarding (server/onboarding/steps.ts) and the profile form both write these
+ * fields, so the rules live HERE, next to ProfileDoc, and both callers import
+ * them. Two copies of "years must be 0-50" is how the two screens drift apart.
+ * ------------------------------------------------------------------------- */
+
+export type CurrentRole = { company: string; role: string; current: boolean };
+
+export type FieldResult<T> =
+  { ok: true; value: T } | { ok: false; error: string };
+
+function requiredText(
+  v: unknown,
+  label: string,
+  max = 120,
+): FieldResult<string> {
+  if (typeof v !== "string" || !v.trim())
+    return { ok: false, error: `Please add your ${label}.` };
+  const s = v.trim();
+  if (s.length > max) return { ok: false, error: `That ${label} is too long.` };
+  return { ok: true, value: s };
+}
+
+export function validateYears(v: unknown): FieldResult<number> {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0 || n > 50)
+    return {
+      ok: false,
+      error: "Years of experience should be between 0 and 50.",
+    };
+  return { ok: true, value: Math.round(n) };
+}
+
+export function validateCurrentRole(input: {
+  company: unknown;
+  role: unknown;
+  current?: unknown;
+}): FieldResult<CurrentRole> {
+  const company = requiredText(input.company, "company");
+  if (!company.ok) return company;
+  const role = requiredText(input.role, "job title");
+  if (!role.ok) return role;
+  return {
+    ok: true,
+    value: {
+      company: company.value,
+      role: role.value,
+      current: input.current !== false,
+    },
+  };
+}
+
+export function validateDisciplines(v: unknown): FieldResult<string[]> {
+  const list = Array.isArray(v)
+    ? [
+        ...new Set(
+          v.filter(
+            (d): d is string =>
+              typeof d === "string" && DISCIPLINE_SLUGS.has(d),
+          ),
+        ),
+      ]
+    : [];
+  if (list.length === 0)
+    return { ok: false, error: "Pick at least one area you can interview in." };
+  return { ok: true, value: list };
+}
+
+export function validateSkills(v: unknown): FieldResult<string[]> {
+  const raw = Array.isArray(v) ? v : [];
+  const skills: string[] = [];
+  for (const s of raw) {
+    if (typeof s !== "string") continue;
+    const t = s.trim();
+    if (!t) continue;
+    // Custom entries are allowed — the taxonomy will never be complete — but
+    // capped so the field can't be used as free storage.
+    if (!KNOWN_SKILLS.has(t) && t.length > MAX_CUSTOM_SKILL_LENGTH) continue;
+    if (!skills.includes(t)) skills.push(t);
+  }
+  if (skills.length === 0)
+    return {
+      ok: false,
+      error: "Pick at least one skill you're comfortable assessing.",
+    };
+  if (skills.length > MAX_SKILLS)
+    return {
+      ok: false,
+      error: `Please keep it to ${MAX_SKILLS} skills or fewer.`,
+    };
+  return { ok: true, value: skills };
 }

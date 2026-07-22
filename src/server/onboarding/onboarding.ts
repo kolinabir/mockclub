@@ -57,9 +57,13 @@ export async function completeOnboarding(
   ];
 
   try {
+    // Role only. `onboardedAt` belongs to the LAST form step (see steps.ts) —
+    // setting it here marked someone fully onboarded the moment they picked a
+    // role, so /onboarding sent them straight to the dashboard and all four
+    // steps were skipped.
     await updateUser(userId, {
       role: roles.join(","),
-      onboardedAt: new Date(),
+      roleChosenAt: new Date(),
     });
   } catch {
     return { ok: false, error: "Couldn't save that. Please try again." };

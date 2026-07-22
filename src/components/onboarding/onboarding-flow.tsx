@@ -4,7 +4,14 @@ import { useState, useTransition } from "react";
 import { ArrowLeft, ArrowUpRight, Check, Plus, X } from "lucide-react";
 
 import { saveOnboardingStepAction } from "@/app/onboarding/actions";
-import { DISCIPLINES, MAX_SKILLS } from "@/content/skills";
+import {
+  DISCIPLINES,
+  FIELDS,
+  MAX_SKILLS,
+  disciplinesInFields,
+  fieldsOf,
+  inferDisciplines,
+} from "@/content/skills";
 import { cn } from "@/lib/utils";
 
 type Draft = Record<string, unknown>;
@@ -82,6 +89,12 @@ export function OnboardingFlow({
     (draft.skills as string[]) ?? [],
   );
   const [customSkill, setCustomSkill] = useState("");
+  const [suggested, setSuggested] = useState<string[]>([]);
+  // Which backgrounds they're from. Derived from any disciplines already
+  // saved, so coming back to this step doesn't ask again.
+  const [fields, setFields] = useState<string[]>(
+    fieldsOf((draft.disciplines as string[]) ?? []),
+  );
 
   const [links, setLinks] = useState<{ type: string; url: string }[]>(
     (draft.links as { type: string; url: string }[]) ?? [
@@ -133,7 +146,20 @@ export function OnboardingFlow({
         window.location.href = "/dashboard";
         return;
       }
-      if (res.next) setStep(res.next as StepId);
+      if (res.next) {
+        // Seed the next step from the job title — only when they haven't
+        // chosen anything yet, so going Back and returning never overwrites a
+        // real selection with a guess.
+        if (res.next === "expertise" && disciplines.length === 0) {
+          const guess = inferDisciplines(jobTitle);
+          if (guess.length) {
+            setDisciplines(guess);
+            setSuggested(guess);
+            setFields(fieldsOf(guess));
+          }
+        }
+        setStep(res.next as StepId);
+      }
     });
   }
 
@@ -234,30 +260,84 @@ export function OnboardingFlow({
         {step === "expertise" && (
           <>
             <Field
-              label="Areas you can interview in"
-              hint="Pick as many as apply. The skills below follow from these."
+              label="What's your background?"
+              hint="Pick every field you can interview in — this isn't only for developers."
             >
+              {suggested.length > 0 && (
+                <p className="press mb-3 bg-card p-3 text-sm leading-relaxed">
+                  Pre-selected from{" "}
+                  <span className="font-medium">{jobTitle}</span>. Change
+                  anything that doesn&apos;t fit — this is only a guess.
+                </p>
+              )}
               <div className="grid gap-2 sm:grid-cols-2">
-                {DISCIPLINES.map((d) => (
-                  <button
-                    key={d.slug}
-                    type="button"
-                    onClick={() => toggle(disciplines, d.slug, setDisciplines)}
-                    aria-pressed={disciplines.includes(d.slug)}
-                    className={cn(
-                      "border-[1.5px] p-3 text-start transition-all",
-                      disciplines.includes(d.slug)
-                        ? "border-vermilion-deep shadow-[3px_3px_0_0_var(--vermilion)]"
-                        : "border-ink/25 hover:border-ink",
-                    )}
-                  >
-                    <span className="block font-medium">{d.name}</span>
-                    <span className="mt-0.5 block text-sm text-ink-soft">
-                      {d.note}
-                    </span>
-                  </button>
-                ))}
+                {FIELDS.map((f) => {
+                  const on = fields.includes(f.slug);
+                  return (
+                    <button
+                      key={f.slug}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => {
+                        const next = on
+                          ? fields.filter((x) => x !== f.slug)
+                          : [...fields, f.slug];
+                        setFields(next);
+                        // Drop disciplines whose field was just removed, so a
+                        // hidden option can't stay silently selected.
+                        setDisciplines(
+                          disciplines.filter((slug) =>
+                            next.includes(
+                              DISCIPLINES.find((d) => d.slug === slug)
+                                ?.family ?? "",
+                            ),
+                          ),
+                        );
+                      }}
+                      className={cn(
+                        "border-[1.5px] p-3 text-start transition-all",
+                        on
+                          ? "border-vermilion-deep shadow-[3px_3px_0_0_var(--vermilion)]"
+                          : "border-ink/25 hover:border-ink",
+                      )}
+                    >
+                      <span className="block font-medium">{f.name}</span>
+                      <span className="mt-0.5 block text-sm text-ink-soft">
+                        {f.note}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
+
+              {fields.length > 0 && (
+                <div className="mt-5">
+                  <p className="font-medium">Specifically</p>
+                  <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
+                    {disciplinesInFields(fields).map((d) => (
+                      <button
+                        key={d.slug}
+                        type="button"
+                        onClick={() =>
+                          toggle(disciplines, d.slug, setDisciplines)
+                        }
+                        aria-pressed={disciplines.includes(d.slug)}
+                        className={cn(
+                          "border-[1.5px] p-3 text-start transition-all",
+                          disciplines.includes(d.slug)
+                            ? "border-vermilion-deep shadow-[3px_3px_0_0_var(--vermilion)]"
+                            : "border-ink/25 hover:border-ink",
+                        )}
+                      >
+                        <span className="block font-medium">{d.name}</span>
+                        <span className="mt-0.5 block text-sm text-ink-soft">
+                          {d.note}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Field>
 
             {disciplines.length > 0 && (
@@ -431,7 +511,10 @@ export function OnboardingFlow({
       </div>
 
       <p className="stamp-label mt-5 text-center text-ink-soft">
-        Your answers are saved as you go
+        {/* Precise on purpose: a step is saved when it's submitted, not while
+            it's being typed. "Saved as you go" implied keystroke autosave and
+            would read as data loss if someone closed a half-filled step. */}
+        Each step is saved when you continue — you can come back any time
       </p>
     </div>
   );

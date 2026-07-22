@@ -1,11 +1,5 @@
 import "server-only";
 
-import {
-  DISCIPLINE_SLUGS,
-  KNOWN_SKILLS,
-  MAX_CUSTOM_SKILL_LENGTH,
-  MAX_SKILLS,
-} from "@/content/skills";
 import { DISCIPLINES } from "@/content/skills";
 import { getMongoClient } from "@/server/db/mongo";
 import { drafts, type OnboardingDraft } from "@/server/onboarding/draft";
@@ -15,6 +9,10 @@ import {
   MIN_PROFILE_LINKS,
   isValidTimeZone,
   normalizeLink,
+  validateCurrentRole,
+  validateDisciplines,
+  validateSkills,
+  validateYears,
   type Level,
   type ProfileLink,
 } from "@/server/profile/profile";
@@ -108,69 +106,37 @@ function validateExperience(input: Record<string, unknown>): Validation {
   )
     return { ok: false, error: "Pick the level you interview at." };
 
-  const years = Number(input.yearsOfExperience);
-  if (!Number.isFinite(years) || years < 0 || years > 50)
-    return {
-      ok: false,
-      error: "Years of experience should be between 0 and 50.",
-    };
+  const years = validateYears(input.yearsOfExperience);
+  if (!years.ok) return years;
 
-  const company = text(input.company, "company");
-  if (!company.ok) return company;
-  const role = text(input.role, "job title");
+  const role = validateCurrentRole({
+    company: input.company,
+    role: input.role,
+    current: input.current,
+  });
   if (!role.ok) return role;
 
   return {
     ok: true,
     data: {
       level: input.level as Level,
-      yearsOfExperience: Math.round(years),
-      currentRole: {
-        company: company.value,
-        role: role.value,
-        current: input.current !== false,
-      },
+      yearsOfExperience: years.value,
+      currentRole: role.value,
     },
   };
 }
 
 function validateExpertise(input: Record<string, unknown>): Validation {
-  const disciplines = Array.isArray(input.disciplines)
-    ? [
-        ...new Set(
-          input.disciplines.filter(
-            (d): d is string =>
-              typeof d === "string" && DISCIPLINE_SLUGS.has(d),
-          ),
-        ),
-      ]
-    : [];
-  if (disciplines.length === 0)
-    return { ok: false, error: "Pick at least one area you can interview in." };
+  const disciplines = validateDisciplines(input.disciplines);
+  if (!disciplines.ok) return disciplines;
 
-  const raw = Array.isArray(input.skills) ? input.skills : [];
-  const skills: string[] = [];
-  for (const s of raw) {
-    if (typeof s !== "string") continue;
-    const v = s.trim();
-    if (!v) continue;
-    // Custom entries are allowed (the taxonomy will never be complete), but
-    // they're length-capped so the field can't be used as free storage.
-    if (!KNOWN_SKILLS.has(v) && v.length > MAX_CUSTOM_SKILL_LENGTH) continue;
-    if (!skills.includes(v)) skills.push(v);
-  }
-  if (skills.length === 0)
-    return {
-      ok: false,
-      error: "Pick at least one skill you're comfortable assessing.",
-    };
-  if (skills.length > MAX_SKILLS)
-    return {
-      ok: false,
-      error: `Please keep it to ${MAX_SKILLS} skills or fewer.`,
-    };
+  const skills = validateSkills(input.skills);
+  if (!skills.ok) return skills;
 
-  return { ok: true, data: { disciplines, skills } };
+  return {
+    ok: true,
+    data: { disciplines: disciplines.value, skills: skills.value },
+  };
 }
 
 function validateTrust(input: Record<string, unknown>): Validation {

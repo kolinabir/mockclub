@@ -54,10 +54,14 @@ export async function saveProfileAction(formData: FormData) {
 
   // Malformed JSON must not throw and 500 the action.
   let links: unknown = [];
+  let disciplines: unknown = [];
+  let skills: unknown = [];
   try {
     links = JSON.parse(String(formData.get("links") ?? "[]"));
+    disciplines = JSON.parse(String(formData.get("disciplines") ?? "[]"));
+    skills = JSON.parse(String(formData.get("skills") ?? "[]"));
   } catch {
-    return { ok: false as const, error: "Couldn't read those links." };
+    return { ok: false as const, error: "Couldn't read that form." };
   }
 
   const result = await saveProfile(user!.id, {
@@ -67,6 +71,12 @@ export async function saveProfileAction(formData: FormData) {
     languages: formData.getAll("languages"),
     links,
     timeZone: formData.get("timeZone"),
+    yearsOfExperience: formData.get("yearsOfExperience"),
+    company: formData.get("company"),
+    role: formData.get("role"),
+    current: formData.get("current") === "on",
+    disciplines,
+    skills,
   });
 
   if (result.ok) revalidatePath("/dashboard");

@@ -25,7 +25,8 @@ export default async function ProfilePage() {
         How we match you.
       </h1>
       <p className="mt-3 text-ink-soft">
-        Role, level, language and timezone — plus where people can find you.
+        Role, level, experience and the skills you can assess — plus where
+        people can find you. Filled in from onboarding; change it any time.
       </p>
 
       <div className="mt-8">
