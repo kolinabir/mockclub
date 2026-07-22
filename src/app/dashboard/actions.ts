@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/session";
 import { updateUser } from "@/server/users/users";
 import { saveSettings } from "@/server/availability/availability";
-import { saveAvailability as saveSchedule } from "@/server/scheduling/scheduling";
+import {
+  saveAvailability as saveSchedule,
+  syncTimeZone,
+} from "@/server/scheduling/scheduling";
 import { saveProfile } from "@/server/profile/profile";
 import { rateLimit } from "@/server/rate-limit";
 
@@ -77,7 +80,18 @@ export async function saveProfileAction(formData: FormData) {
     skills,
   });
 
-  if (result.ok) revalidatePath("/dashboard");
+  if (result.ok) {
+    // The profile owns the zone; the schedule mirrors it. Moving country has to
+    // move your materialised slots with you, or every one of them stays at the
+    // old offset while the screen shows the new zone.
+    //
+    // Swallowed on purpose: the profile write has ALREADY committed, so
+    // throwing here would report "couldn't save" for a change that did save.
+    // syncTimeZone writes the schedule's zone before it regenerates, and the
+    // nightly sweep regenerates from that, so a failure here self-heals.
+    await syncTimeZone(user!.id).catch(() => {});
+    revalidatePath("/dashboard");
+  }
   return result;
 }
 
@@ -99,11 +113,9 @@ export async function saveAvailabilityAction(formData: FormData) {
     return { ok: false as const, error: "Couldn't read those hours." };
   }
 
-  // Scheduling owns the schedule, its rules and the materialised slots.
-  const result = await saveSchedule(user!.id, {
-    timeZone: formData.get("timeZone"),
-    rules,
-  });
+  // Scheduling owns the schedule, its rules and the materialised slots. The
+  // zone is deliberately not read from the form — it comes from the profile.
+  const result = await saveSchedule(user!.id, { rules });
   if (result.ok) revalidatePath("/dashboard");
   return result;
 }

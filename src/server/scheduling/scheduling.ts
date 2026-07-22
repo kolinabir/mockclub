@@ -1,14 +1,9 @@
 import "server-only";
 
-import {
-  addMinutes,
-  isValidTimeZone,
-  parseHHMM,
-  parseISODate,
-  wallClockIn,
-  zonedToUtc,
-} from "@/lib/time";
+import { isValidTimeZone, parseHHMM, parseISODate } from "@/lib/time";
 import { getDb } from "@/server/db/mongo";
+import { getProfile } from "@/server/profile/profile";
+import { expandSlots, type ExpandableRule } from "@/server/scheduling/expand";
 
 /**
  * Scheduling — schedules, availability rules, and materialised slots.
@@ -24,6 +19,11 @@ import { getDb } from "@/server/db/mongo";
  * 1. TIMEZONE LIVES ON THE SCHEDULE, not on each rule. A rule is a local
  *    wall-clock intention ("Tuesdays 18:00"); storing it in UTC loses the zone
  *    and the rule silently shifts an hour at every DST transition, unrepairably.
+ *    The schedule's copy MIRRORS the profile — the profile is where a member
+ *    actually picks their zone, so it is the single source and `syncTimeZone`
+ *    is the only thing that copies it here. Two independent writers meant a
+ *    member could move to another country and keep every slot at the old
+ *    offset, with no screen anywhere showing the disagreement.
  * 2. SLOTS ARE MATERIALISED DOCUMENTS. MongoDB has no equivalent of Postgres's
  *    `EXCLUDE USING gist`, so the only sound way to prevent double-booking is to
  *    make each bookable hour a document and claim it atomically.
@@ -43,18 +43,8 @@ export type Schedule = {
   updatedAt: Date;
 };
 
-export type AvailabilityRule = {
-  userId: string;
-  /** 0=Sun … 6=Sat in LOCAL days. Used when `date` is null. */
-  days: number[];
-  /** LOCAL wall clock as a plain string. Never a Date. */
-  startTime: string;
-  endTime: string;
-  /** Non-null ("2026-08-14") => one-off override for that single day. */
-  date: string | null;
-  /** An override that removes availability instead of adding it. */
-  blocked: boolean;
-};
+/** A stored rule: what expansion needs, plus its owner. */
+export type AvailabilityRule = ExpandableRule & { userId: string };
 
 export type Slot = {
   userId: string;
@@ -181,18 +171,74 @@ function validateRule(
 }
 
 /**
- * Replace this member's schedule and rules, then rebuild their slots.
+ * The zone this member's hours are interpreted in.
+ *
+ * The profile wins: it is the field the member edits, so anything else is a
+ * stale copy. Falls back to the schedule only for members who set hours before
+ * the profile carried a zone.
+ */
+async function resolveTimeZone(userId: string): Promise<string | null> {
+  const [profile, schedule] = await Promise.all([
+    getProfile(userId),
+    collections().schedules.findOne({ userId }),
+  ]);
+
+  for (const tz of [profile?.timeZone, schedule?.timeZone]) {
+    if (typeof tz === "string" && isValidTimeZone(tz)) return tz;
+  }
+  return null;
+}
+
+/**
+ * Copy the profile's zone onto the schedule, rebuilding slots if it moved.
+ *
+ * Called after anything that writes `profile.timeZone`. Without it, changing
+ * your zone leaves every materialised slot at the old offset: the hours read
+ * "18:00" on screen and resolve to an instant an hour or two away, and nothing
+ * surfaces the disagreement until someone misses a session.
+ */
+export async function syncTimeZone(userId: string): Promise<boolean> {
+  const profile = await getProfile(userId);
+  const tz = profile?.timeZone;
+  if (typeof tz !== "string" || !isValidTimeZone(tz)) return false;
+
+  const { schedules } = collections();
+  const schedule = await schedules.findOne({ userId });
+  if (schedule?.timeZone === tz) return false;
+
+  await schedules.updateOne(
+    { userId },
+    {
+      $set: { userId, timeZone: tz, updatedAt: new Date() },
+      $setOnInsert: { name: "Default", isDefault: true },
+    },
+    { upsert: true },
+  );
+
+  // Only worth the work once there are rules to re-expand.
+  if (schedule) await generateSlots(userId);
+  return true;
+}
+
+/**
+ * Replace this member's rules, then rebuild their slots.
  *
  * Whole-set replacement rather than per-rule editing: the form always submits
  * the complete picture, and a partial update would need diffing that the UI
  * can't express anyway.
+ *
+ * The zone is NOT taken from the submitted form — see `resolveTimeZone`.
  */
 export async function saveAvailability(
   userId: string,
-  input: { timeZone: unknown; rules: unknown },
+  input: { rules: unknown },
 ): Promise<SaveResult> {
-  if (typeof input.timeZone !== "string" || !isValidTimeZone(input.timeZone))
-    return { ok: false, error: "Pick a valid time zone." };
+  const timeZone = await resolveTimeZone(userId);
+  if (!timeZone)
+    return {
+      ok: false,
+      error: "Set your time zone on your profile before adding hours.",
+    };
 
   const raw = Array.isArray(input.rules) ? input.rules : [];
   if (raw.length > 50) return { ok: false, error: "That's too many rules." };
@@ -212,7 +258,7 @@ export async function saveAvailability(
     {
       $set: {
         userId,
-        timeZone: input.timeZone,
+        timeZone,
         name: "Default",
         isDefault: true,
         updatedAt: new Date(),
@@ -230,29 +276,6 @@ export async function saveAvailability(
 }
 
 /* --------------------------------------------------------- materialisation */
-
-/** Expand rules into the local wall-clock windows that apply on one date. */
-function windowsForDate(
-  rules: AvailabilityRule[],
-  isoDate: string,
-  weekday: number,
-): { startTime: string; endTime: string }[] {
-  const overrides = rules.filter((r) => r.date === isoDate);
-
-  // An override for a date REPLACES the recurring rules that day — that's what
-  // makes "not this Thursday" expressible at all.
-  if (overrides.length) {
-    if (overrides.some((o) => o.blocked)) return [];
-    return overrides.map((o) => ({
-      startTime: o.startTime,
-      endTime: o.endTime,
-    }));
-  }
-
-  return rules
-    .filter((r) => !r.date && r.days.includes(weekday))
-    .map((r) => ({ startTime: r.startTime, endTime: r.endTime }));
-}
 
 /**
  * Rebuild the slot documents for the horizon.
@@ -277,60 +300,17 @@ export async function generateSlots(
   const from = opts.from ?? new Date();
   const horizon = opts.days ?? HORIZON_DAYS;
 
-  const wanted = new Map<number, { startsAt: Date; endsAt: Date }>();
-
-  // Walk LOCAL CALENDAR DATES, not fixed 24h steps.
-  //
-  // Adding 86_400_000ms per day skips a local date whenever clocks spring
-  // forward: starting near midnight before a transition, day N+1 lands on the
-  // date after next, and that day generates NO slots at all. Verified — an
-  // interviewer available "every day" had nothing on 2026-03-29 in London.
-  //
-  // Date.UTC here is pure calendar arithmetic (it rolls month/year over), and
-  // never touches a zone, so it can't be bitten by DST.
-  const startLocal = wallClockIn(from, tz);
-
-  for (let i = 0; i < horizon; i++) {
-    const cal = new Date(
-      Date.UTC(startLocal.year, startLocal.month - 1, startLocal.day + i),
-    );
-    const local = {
-      year: cal.getUTCFullYear(),
-      month: cal.getUTCMonth() + 1,
-      day: cal.getUTCDate(),
-      weekday: cal.getUTCDay(),
-    };
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const isoDate = `${local.year}-${pad(local.month)}-${pad(local.day)}`;
-
-    for (const w of windowsForDate(all, isoDate, local.weekday)) {
-      const start = parseHHMM(w.startTime);
-      const end = parseHHMM(w.endTime);
-      if (!start || !end) continue;
-
-      const dayStart = zonedToUtc(
-        { year: local.year, month: local.month, day: local.day, ...start },
-        tz,
-      );
-      const dayEnd = zonedToUtc(
-        { year: local.year, month: local.month, day: local.day, ...end },
-        tz,
-      );
-
-      for (
-        let cursor = dayStart;
-        addMinutes(cursor, SLOT_MINUTES) <= dayEnd;
-        cursor = addMinutes(cursor, SLOT_MINUTES)
-      ) {
-        // Never materialise the past.
-        if (cursor <= from) continue;
-        wanted.set(cursor.getTime(), {
-          startsAt: cursor,
-          endsAt: addMinutes(cursor, SLOT_MINUTES),
-        });
-      }
-    }
-  }
+  // All of the domain logic — override precedence, overlap merging, the
+  // DST-safe calendar walk — lives in expand.ts and is pure. What follows is
+  // only the diff against what is already stored.
+  const spans = expandSlots({
+    rules: all,
+    timeZone: tz,
+    from,
+    horizonDays: horizon,
+    slotMinutes: SLOT_MINUTES,
+  });
+  const wanted = new Map(spans.map((s) => [s.startsAt.getTime(), s]));
 
   // Slots that have already happened are dead weight — the plan flags the
   // combinatorial size of a materialised collection, so it has to be swept.
@@ -386,8 +366,13 @@ export async function generateSlots(
       const code = (err as { code?: number }).code;
       const writeErrors = (err as { writeErrors?: unknown[] }).writeErrors;
       if (code !== 11000 && !writeErrors) throw err;
-      created =
-        (err as { result?: { nInserted?: number } }).result?.nInserted ?? 0;
+      // The driver's BulkWriteResult exposes `insertedCount`; `nInserted` is
+      // the pre-v4 name and is undefined here, so reading only that reported
+      // "0 created" for every partially-duplicated run.
+      const partial = (
+        err as { result?: { insertedCount?: number; nInserted?: number } }
+      ).result;
+      created = partial?.insertedCount ?? partial?.nInserted ?? 0;
     }
   }
 
@@ -430,6 +415,55 @@ export async function slotsFor(
     })
     .sort({ startsAt: 1 })
     .toArray();
+}
+
+/**
+ * Roll the horizon forward for everyone. The nightly sweep.
+ *
+ * `generateSlots` only ever runs when a member edits their hours, and it looks
+ * HORIZON_DAYS ahead — so an interviewer who sets their week once and never
+ * touches it again runs out of bookable hours a month later and quietly stops
+ * appearing. This is what keeps the window sliding.
+ *
+ * Sequential on purpose: a nightly job has all the time it needs, and firing
+ * hundreds of concurrent regenerations at an M0 pool of 10 would not end well.
+ * One member's bad data must not abort the sweep for everyone behind them.
+ */
+export async function generateSlotsForAll(): Promise<{
+  members: number;
+  created: number;
+  removed: number;
+  failed: number;
+}> {
+  const { rules } = collections();
+
+  let created = 0;
+  let removed = 0;
+  let failed = 0;
+
+  // Driven off RULES, not schedules. Every member gets a schedule document the
+  // moment they finish onboarding (syncTimeZone seeds the zone mirror), so
+  // sweeping schedules would walk every candidate on the platform to rebuild
+  // nothing. Only someone with availability rules has slots to roll forward.
+  //
+  // Read up front rather than iterating a live cursor: regenerating one member
+  // takes several round trips, so a cursor held open across all of them idles
+  // past the server's 10-minute cursor timeout and the sweep dies half-done —
+  // having already rebuilt some members and not others.
+  const userIds = await rules.distinct("userId");
+
+  for (const userId of userIds) {
+    try {
+      const result = await generateSlots(userId);
+      created += result.created;
+      removed += result.removed;
+    } catch {
+      failed++;
+    }
+  }
+
+  await releaseExpiredHolds();
+  return { members: userIds.length, created, removed, failed };
 }
 
 /** How many bookable hours this member currently has. Drives "are you listed?". */

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { AvailabilityForm } from "@/components/dashboard/availability-form";
+import { isoDateIn } from "@/lib/time";
 import { getCurrentUser } from "@/lib/session";
 import { getSettings } from "@/server/availability/availability";
 import {
@@ -29,12 +30,38 @@ export default async function AvailabilityPage() {
     countOpenSlots(user.id),
   ]);
 
-  // The schedule owns the scheduling zone (PLAN.md §5); the profile's is only a
-  // display default for someone who has never saved a schedule.
-  const timeZone =
-    availability.rules.length || availability.timeZone !== "UTC"
-      ? availability.timeZone
-      : (profile?.timeZone ?? "UTC");
+  // The PROFILE owns the zone — it's the field a member actually edits. The
+  // schedule's copy mirrors it (syncTimeZone), so showing anything else here
+  // would just be a stale second opinion.
+  const timeZone = profile?.timeZone ?? availability.timeZone;
+
+  // "Today" in the member's own zone, not the server's — it's the floor for a
+  // new date override, and off by a day for anyone far enough east or west.
+  const today = isoDateIn(new Date(), timeZone);
+
+  // Both kinds are loaded and both are sent back on save. The form replaces the
+  // whole rule set, so anything not handed to it would be silently deleted.
+  const initialBlocks = availability.rules
+    .filter((r) => !r.date)
+    .map((r) => ({
+      days: r.days,
+      startTime: r.startTime,
+      endTime: r.endTime,
+    }));
+
+  const initialOverrides = availability.rules
+    .filter((r): r is typeof r & { date: string } => Boolean(r.date))
+    // Spent dates are dropped rather than shown: they can't be edited (the
+    // picker floors at today) and re-saving them would just regenerate rules
+    // for days that have already passed.
+    .filter((r) => r.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((r) => ({
+      date: r.date,
+      blocked: r.blocked,
+      startTime: r.startTime,
+      endTime: r.endTime,
+    }));
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -63,14 +90,10 @@ export default async function AvailabilityPage() {
 
       <div className="mt-8">
         <AvailabilityForm
-          initialRules={availability.rules
-            .filter((r) => !r.date)
-            .map((r) => ({
-              days: r.days,
-              startTime: r.startTime,
-              endTime: r.endTime,
-            }))}
+          initialBlocks={initialBlocks}
+          initialOverrides={initialOverrides}
           timeZone={timeZone}
+          today={today}
           initialMax={settings?.maxSessionsPerMonth ?? 2}
           initialPaused={settings?.paused ?? false}
         />

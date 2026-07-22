@@ -16,6 +16,7 @@ import {
   type Level,
   type ProfileLink,
 } from "@/server/profile/profile";
+import { syncTimeZone } from "@/server/scheduling/scheduling";
 import { users, userFilter } from "@/server/users/users";
 
 /**
@@ -291,6 +292,11 @@ async function materialize(
   } finally {
     await session.endSession();
   }
+
+  // Seed the schedule with the zone they just chose, so the mirror is correct
+  // from the first day rather than from their first profile edit. There are no
+  // rules yet, so this writes one small document and generates nothing.
+  await syncTimeZone(userId).catch(() => {});
 
   // Best-effort cleanup; the TTL index sweeps it anyway.
   await drafts()
