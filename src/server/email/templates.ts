@@ -25,9 +25,51 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/** Where links point when nothing usable is configured. */
+const PUBLIC_BASE_URL = "https://mockclub.com";
+
+/**
+ * The base URL for links in email — never a local one.
+ *
+ * `NEXT_PUBLIC_APP_URL` is `http://localhost:3000` in development, and reading
+ * it blindly put `http://localhost:3000/dashboard` into a real message. That is
+ * a link no recipient can open, over plain HTTP, to a non-resolvable host with
+ * a port number — close to a textbook phishing signature, and spam filters
+ * score it accordingly. Confirmed in the raw headers of a delivered test.
+ *
+ * So a local or non-HTTPS value is refused rather than used. Mail sent from a
+ * developer's machine still carries production links, which is the only thing
+ * that makes sense: the recipient is real either way.
+ */
 function appUrl(path = ""): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://mockclub.com";
-  return `${base.replace(/\/+$/, "")}${path}`;
+  const configured =
+    process.env.EMAIL_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  if (!configured) return `${PUBLIC_BASE_URL}${path}`;
+
+  let url: URL;
+  try {
+    url = new URL(configured);
+  } catch {
+    return `${PUBLIC_BASE_URL}${path}`;
+  }
+
+  const host = url.hostname.toLowerCase();
+  const isLocal =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1" ||
+    host.endsWith(".local") ||
+    host.endsWith(".localhost") ||
+    /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+
+  if (isLocal || url.protocol !== "https:") {
+    console.warn(
+      `[email] ignoring non-public base URL "${configured}" — links will use ${PUBLIC_BASE_URL}. Set EMAIL_BASE_URL to override.`,
+    );
+    return `${PUBLIC_BASE_URL}${path}`;
+  }
+
+  return `${url.origin}${path}`;
 }
 
 const INK = "#1f1b15";
