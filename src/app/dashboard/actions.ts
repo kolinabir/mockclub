@@ -47,6 +47,7 @@ export async function saveProfileAction(formData: FormData) {
 
   const result = await saveProfile(user!.id, {
     trackSlug: formData.get("trackSlug"),
+    customTrack: formData.get("customTrack"),
     level: formData.get("level"),
     languages: formData.getAll("languages"),
     timeZone: formData.get("timeZone"),

@@ -2,7 +2,7 @@ import "server-only";
 
 import { getDb } from "@/server/db/mongo";
 
-import { TRACKS } from "@/content/tracks";
+import { OTHER_TRACK_SLUG, TRACKS } from "@/content/tracks";
 
 /**
  * Member profile. Kept in its own collection rather than Better Auth's
@@ -21,6 +21,8 @@ export const LANGUAGES = [
 export type ProfileDoc = {
   userId: string;
   trackSlug: string;
+  /** Only set when trackSlug === "other" — what they typed instead. */
+  customTrack?: string;
   level: Level;
   languages: string[];
   /** IANA id only — never an offset or abbreviation (see PLAN.md §4). */
@@ -28,7 +30,7 @@ export type ProfileDoc = {
   updatedAt: Date;
 };
 
-const TRACK_SLUGS = new Set(TRACKS.map((t) => t.slug));
+const TRACK_SLUGS = new Set([...TRACKS.map((t) => t.slug), OTHER_TRACK_SLUG]);
 
 /** Validate against the runtime's own tz database — not a hand-rolled list. */
 function isValidTimeZone(tz: string): boolean {
@@ -53,12 +55,30 @@ export async function getProfile(userId: string): Promise<ProfileDoc | null> {
 
 export async function saveProfile(
   userId: string,
-  input: { trackSlug: unknown; level: unknown; languages: unknown; timeZone: unknown }
+  input: {
+    trackSlug: unknown;
+    customTrack?: unknown;
+    level: unknown;
+    languages: unknown;
+    timeZone: unknown;
+  }
 ): Promise<SaveResult> {
   const { trackSlug, level, languages, timeZone } = input;
 
   if (typeof trackSlug !== "string" || !TRACK_SLUGS.has(trackSlug))
     return { ok: false, error: "Pick a track." };
+
+  // "Other" means they typed their own — require and bound it. Length-capped
+  // because it will be shown to other members.
+  let customTrack: string | undefined;
+  if (trackSlug === OTHER_TRACK_SLUG) {
+    const raw = typeof input.customTrack === "string" ? input.customTrack.trim() : "";
+    if (raw.length < 2)
+      return { ok: false, error: "Tell us what you're practising for." };
+    if (raw.length > 60)
+      return { ok: false, error: "Keep the track under 60 characters." };
+    customTrack = raw.replace(/\s+/g, " ");
+  }
   if (typeof level !== "string" || !LEVELS.includes(level as Level))
     return { ok: false, error: "Pick your level." };
   if (typeof timeZone !== "string" || !isValidTimeZone(timeZone))
@@ -79,7 +99,10 @@ export async function saveProfile(
         languages: langs,
         timeZone,
         updatedAt: new Date(),
+        ...(customTrack ? { customTrack } : {}),
       },
+      // Drop a stale custom value when switching back to a real track.
+      ...(customTrack ? {} : { $unset: { customTrack: "" } }),
     },
     { upsert: true }
   );

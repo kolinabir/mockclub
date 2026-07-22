@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 
 type Track = { slug: string; name: string };
 
+/** Keep in sync with OTHER_TRACK_SLUG on the server. */
+const OTHER = "other";
+
 const LEVELS = [
   { value: "entry", label: "Entry / Junior" },
   { value: "mid", label: "Mid-level" },
@@ -23,6 +26,7 @@ export function ProfileForm({
   languages: readonly string[];
   initial: {
     trackSlug?: string;
+    customTrack?: string;
     level?: string;
     languages?: string[];
     timeZone?: string;
@@ -32,6 +36,7 @@ export function ProfileForm({
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [track, setTrack] = useState(initial?.trackSlug ?? tracks[0].slug);
+  const [customTrack, setCustomTrack] = useState(initial?.customTrack ?? "");
   const [level, setLevel] = useState(initial?.level ?? "entry");
   const [langs, setLangs] = useState<string[]>(initial?.languages ?? ["English"]);
   // Detected from the browser, always overridable, stored as an IANA id.
@@ -47,6 +52,7 @@ export function ProfileForm({
     e.preventDefault();
     const fd = new FormData();
     fd.set("trackSlug", track);
+    if (track === OTHER) fd.set("customTrack", customTrack);
     fd.set("level", level);
     fd.set("timeZone", tz);
     langs.forEach((l) => fd.append("languages", l));
@@ -70,7 +76,27 @@ export function ProfileForm({
           {tracks.map((t) => (
             <option key={t.slug} value={t.slug}>{t.name}</option>
           ))}
+          <option value={OTHER}>Something else…</option>
         </select>
+
+        {track === OTHER && (
+          <div className="mt-3">
+            <label htmlFor="customTrack" className="stamp-label text-ink-soft">
+              What are you practising for?
+            </label>
+            <input
+              id="customTrack"
+              value={customTrack}
+              onChange={(e) => setCustomTrack(e.target.value)}
+              maxLength={60}
+              placeholder="e.g. Technical Writing, UX Research, Finance"
+              className="mt-2 h-12 w-full rounded-none border-[1.5px] border-ink bg-paper px-3 text-base"
+            />
+            <p className="mt-2 text-sm text-ink-soft">
+              If enough people ask for the same one, it becomes a real track.
+            </p>
+          </div>
+        )}
       </div>
 
       <fieldset>
