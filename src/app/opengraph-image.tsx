@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-import { SITE_NAME, SITE_TAGLINE } from "@/lib/site";
+import { SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/site";
 
 export const alt = `${SITE_NAME} — free mock interviews with real people`;
 export const size = { width: 1200, height: 630 };
@@ -99,7 +99,7 @@ export default function Image() {
             color: "#5A5346",
           }}
         >
-          mockclub.com
+          {SITE_URL.replace(/^https?:\/\//, "")}
         </div>
       </div>
     ),

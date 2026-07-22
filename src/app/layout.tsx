@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Fraunces, Archivo, Fragment_Mono } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
+
 import { ThemeProvider } from "@/components/theme-provider";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -20,7 +23,9 @@ const fragmentMono = Fragment_Mono({
   weight: "400",
 });
 
-const SITE = "https://mockclub.com";
+// The canonical origin lives in one place: NEXT_PUBLIC_APP_URL (see lib/site.ts).
+const SITE = SITE_URL;
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
@@ -84,6 +89,7 @@ export default function RootLayout({
         >
           {children}
         </ThemeProvider>
+        {GA_ID ? <GoogleAnalytics gaId={GA_ID} /> : null}
       </body>
     </html>
   );
