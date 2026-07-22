@@ -74,14 +74,17 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Sidebar tokens are remapped onto the editorial palette below. shadcn ships
+     them as pure neutral grey (chroma 0), which reads as a foreign slab next to
+     our warm paper. Defined here as var() refs so there is one source of truth. */
+  --sidebar: var(--paper-deep);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--vermilion-strong);
+  --sidebar-primary-foreground: var(--chalk);
+  --sidebar-accent: color-mix(in oklch, var(--vermilion) 12%, var(--paper-deep));
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: color-mix(in oklch, var(--ink) 16%, transparent);
+  --sidebar-ring: var(--vermilion);
 }
 
 .dark {
@@ -108,14 +111,18 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Same remap for dark. shadcn's default --sidebar-primary here is BLUE
+     (hue 264), which is nowhere in this palette. */
+  --sidebar: var(--paper-deep);
+  --sidebar-foreground: var(--ink);
+  /* --vermilion-deep goes LIGHTER in dark mode, so chalk on it lands at 1.98:1.
+     --vermilion-strong is the fixed dark red kept for exactly this pairing. */
+  --sidebar-primary: var(--vermilion-strong);
+  --sidebar-primary-foreground: var(--chalk);
+  --sidebar-accent: color-mix(in oklch, var(--vermilion) 18%, var(--paper-deep));
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: color-mix(in oklch, var(--ink) 20%, transparent);
+  --sidebar-ring: var(--vermilion);
 }
 
 @layer base {
@@ -353,5 +360,53 @@
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+}
+
+@layer components {
+  /*
+   * Editorial shape for the shadcn sidebar. The primitives in ui/ are
+   * generated and must stay regenerable, so the house style is applied here
+   * via the data-slot hooks they already expose rather than by hand-editing.
+   *
+   * The palette itself is remapped on the --sidebar-* tokens above; this block
+   * only handles geometry and type.
+   */
+  [data-slot="sidebar-inner"] {
+    border-inline-end: 1.5px solid var(--sidebar-border);
+  }
+
+  /* Square corners — nothing else in this design is rounded. */
+  [data-slot="sidebar-menu-button"],
+  [data-slot="sidebar-menu-sub-button"],
+  [data-slot="sidebar-menu-action"],
+  [data-slot="sidebar-trigger"] {
+    border-radius: 0;
+  }
+
+  /* Group labels read as the same stamped caption used across the site. */
+  [data-slot="sidebar-group-label"] {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  /* The active route gets a vermilion spine, matching the .press language. */
+  [data-slot="sidebar-menu-button"][data-active="true"] {
+    box-shadow: inset 3px 0 0 0 var(--vermilion);
+    font-weight: 600;
+  }
+
+  /* RTL is enabled (Arabic, Urdu), so the spine must flip with the text. */
+  [dir="rtl"] [data-slot="sidebar-menu-button"][data-active="true"] {
+    box-shadow: inset -3px 0 0 0 var(--vermilion);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-slot="sidebar-menu-button"] {
+      transition: none;
+    }
   }
 }
