@@ -50,6 +50,8 @@ export function AvailabilityForm({
         (() => {
           const f = new FormData();
           f.set("rules", JSON.stringify(rules));
+          // The schedule owns the zone; rules are local wall-clock only.
+          f.set("timeZone", timeZone);
           return f;
         })(),
       );

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isValidTimeZone } from "@/lib/time";
 import { getDb } from "@/server/db/mongo";
 
 import {
@@ -146,27 +147,25 @@ export type ProfileDoc = {
 
 const TRACK_SLUGS = new Set([...TRACKS.map((t) => t.slug), OTHER_TRACK_SLUG]);
 
-/** Validate against the runtime's own tz database — not a hand-rolled list. */
-export function isValidTimeZone(tz: string): boolean {
-  try {
-    const supported = (
-      Intl as unknown as {
-        supportedValuesOf?: (k: string) => string[];
-      }
-    ).supportedValuesOf?.("timeZone");
-    if (supported) return supported.includes(tz);
-    // Fallback for runtimes without supportedValuesOf.
-    new Intl.DateTimeFormat("en", { timeZone: tz });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export type SaveResult = { ok: true } | { ok: false; error: string };
 
+let profileIndexEnsured = false;
+
+function profiles() {
+  const c = getDb().collection<ProfileDoc>("profile");
+  if (!profileIndexEnsured) {
+    profileIndexEnsured = true;
+    // Every dashboard render reads this by userId; without an index that is a
+    // full collection scan, and one profile per member means it only grows.
+    void c.createIndex({ userId: 1 }, { unique: true }).catch(() => {});
+    // Booking will need "who can interview this discipline".
+    void c.createIndex({ disciplines: 1 }).catch(() => {});
+  }
+  return c;
+}
+
 export async function getProfile(userId: string): Promise<ProfileDoc | null> {
-  return getDb().collection<ProfileDoc>("profile").findOne({ userId });
+  return profiles().findOne({ userId });
 }
 
 export async function saveProfile(
@@ -276,26 +275,24 @@ export async function saveProfile(
     extra.skills = sk.value;
   }
 
-  await getDb()
-    .collection<ProfileDoc>("profile")
-    .updateOne(
-      { userId },
-      {
-        $set: {
-          trackSlug,
-          level: level as Level,
-          languages: langs,
-          links,
-          timeZone,
-          updatedAt: new Date(),
-          ...extra,
-          ...(customTrack ? { customTrack } : {}),
-        },
-        // Drop a stale custom value when switching back to a real track.
-        ...(customTrack ? {} : { $unset: { customTrack: "" } }),
+  await profiles().updateOne(
+    { userId },
+    {
+      $set: {
+        trackSlug,
+        level: level as Level,
+        languages: langs,
+        links,
+        timeZone,
+        updatedAt: new Date(),
+        ...extra,
+        ...(customTrack ? { customTrack } : {}),
       },
-      { upsert: true },
-    );
+      // Drop a stale custom value when switching back to a real track.
+      ...(customTrack ? {} : { $unset: { customTrack: "" } }),
+    },
+    { upsert: true },
+  );
 
   return { ok: true };
 }
@@ -403,3 +400,7 @@ export function validateSkills(v: unknown): FieldResult<string[]> {
     };
   return { ok: true, value: skills };
 }
+
+/** Re-exported so existing callers keep one import site. The implementation
+ * lives in lib/time — see the note there on why neither Intl check works alone. */
+export { isValidTimeZone };

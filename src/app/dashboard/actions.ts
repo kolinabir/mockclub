@@ -4,10 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentUser } from "@/lib/session";
 import { updateUser } from "@/server/users/users";
-import {
-  saveAvailability,
-  saveSettings,
-} from "@/server/availability/availability";
+import { saveSettings } from "@/server/availability/availability";
+import { saveAvailability as saveSchedule } from "@/server/scheduling/scheduling";
 import { saveProfile } from "@/server/profile/profile";
 import { rateLimit } from "@/server/rate-limit";
 
@@ -101,7 +99,11 @@ export async function saveAvailabilityAction(formData: FormData) {
     return { ok: false as const, error: "Couldn't read those hours." };
   }
 
-  const result = await saveAvailability(user!.id, rules);
+  // Scheduling owns the schedule, its rules and the materialised slots.
+  const result = await saveSchedule(user!.id, {
+    timeZone: formData.get("timeZone"),
+    rules,
+  });
   if (result.ok) revalidatePath("/dashboard");
   return result;
 }
