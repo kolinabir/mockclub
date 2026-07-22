@@ -1,32 +1,26 @@
 import { NextResponse } from "next/server";
 
+import { clientIp, rateLimit } from "@/server/rate-limit";
 import { addToWaitlist } from "@/server/waitlist/waitlist";
 
-/** Naive per-IP throttle. In-memory, so it resets on redeploy and is per-process
- *  — fine for a launch-scale waitlist; swap for a shared store if it ever grows. */
-const hits = new Map<string, number[]>();
-const WINDOW_MS = 60_000;
-const MAX_PER_WINDOW = 6;
-
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
-  recent.push(now);
-  hits.set(ip, recent);
-  return recent.length > MAX_PER_WINDOW;
-}
-
 export async function POST(req: Request) {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
+  const ip = clientIp(req.headers);
 
-  if (rateLimited(ip))
+  // Two layers, because per-IP limiting alone is NOT trustworthy: a client can
+  // forge `x-forwarded-for`, and rotating it defeats any per-IP cap (verified —
+  // 10/10 requests bypassed a 6/min limit). So the per-IP rule handles ordinary
+  // abuse, and a global cap bounds what spoofing can achieve.
+  const [perIp, global] = await Promise.all([
+    rateLimit(`waitlist:ip:${ip}`, { max: 6, windowSeconds: 60 }),
+    rateLimit("waitlist:global", { max: 40, windowSeconds: 60 }),
+  ]);
+
+  if (perIp.limited || global.limited) {
     return NextResponse.json(
       { error: "Too many attempts. Please try again in a minute." },
       { status: 429 }
     );
+  }
 
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object")
@@ -49,7 +43,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ status: result.status });
   } catch {
-    // Never leak connection details to the client.
+    // Never leak connection details or stack traces to the client.
     return NextResponse.json(
       { error: "Something went wrong on our end. Please try again." },
       { status: 500 }

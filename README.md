@@ -96,7 +96,8 @@ src/
 │  ├─ video/             # Jitsi JWT, Meet fallback
 │  ├─ config/            # platform phase + toggles
 │  └─ db/                # collections, indexes, migrations
-└─ lib/                  # framework-agnostic helpers (time wrapper, etc.)
+└─ lib/                  # app-layer helpers. May use next/* (e.g. session
+                        # reads next/headers) — server/ may not.
 ```
 
 **The rule: `app/` may import from `server/`, never the reverse.** Nothing in `server/`
