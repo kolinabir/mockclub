@@ -17,7 +17,7 @@ const PILLARS: [string, string][] = [
 
 export function Sustainability() {
   return (
-    <section className="border-b border-ink/15">
+    <section id="why-free" className="scroll-mt-20 border-b border-ink/15">
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:py-28">
         <Reveal className="max-w-3xl">
           <p className="stamp-label text-vermilion-deep">

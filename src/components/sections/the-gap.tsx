@@ -11,7 +11,7 @@ const ROWS: [string, string][] = [
 
 export function TheGap() {
   return (
-    <section className="border-b border-ink/15">
+    <section id="gap" className="scroll-mt-20 border-b border-ink/15">
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:py-28">
         <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
           <Reveal>

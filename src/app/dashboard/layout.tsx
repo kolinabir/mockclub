@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
@@ -11,6 +12,19 @@ import {
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getCurrentUser } from "@/lib/session";
 import { hasOnboarded } from "@/server/onboarding/onboarding";
+
+/**
+ * Everything under /dashboard is behind the auth guard below, so a crawler only
+ * ever gets the redirect to /sign-in — there is nothing here to rank, and a
+ * member's availability or admin queue must never end up in a search result.
+ *
+ * Declared on the layout, not on each page, so a new route added later inherits
+ * it instead of leaking because someone forgot the line. Individual pages still
+ * set their own `title`; those merge over this.
+ */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 
