@@ -1,6 +1,6 @@
 import { FAQ } from "@/content/faq";
 import { TRACKS } from "@/content/tracks";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
+import { SITE_DESCRIPTION, SITE_EMAIL, SITE_NAME, SITE_URL } from "@/lib/site";
 
 /**
  * JSON-LD for the landing page.
@@ -23,6 +23,13 @@ export function StructuredData() {
         url: SITE_URL,
         description: SITE_DESCRIPTION,
         slogan: "Made by devs, for everyone.",
+        email: SITE_EMAIL,
+        contactPoint: {
+          "@type": "ContactPoint",
+          email: SITE_EMAIL,
+          contactType: "general enquiries",
+          availableLanguage: ["English", "Bengali"],
+        },
       },
       {
         "@type": "WebSite",

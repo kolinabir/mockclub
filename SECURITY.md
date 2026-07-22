@@ -5,7 +5,7 @@
 **Please do not open a public issue.**
 
 Report privately via [GitHub Security Advisories](../../security/advisories/new), or
-email **security@mockclub.com**.
+email **contact@mockclub.com**.
 
 Include: what you found, how to reproduce it, and what an attacker could do with it.
 

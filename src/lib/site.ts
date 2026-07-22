@@ -7,6 +7,7 @@ export const SITE_URL =
   process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://mockclub.com";
 
 export const SITE_NAME = "MockClub";
+export const SITE_EMAIL = "contact@mockclub.com";
 export const SITE_TAGLINE = "Made by devs, for everyone.";
 
 export const SITE_DESCRIPTION =

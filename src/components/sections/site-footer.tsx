@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Logo } from "@/components/logo";
 import { NAV_LINKS } from "@/content/nav";
+import { SITE_EMAIL } from "@/lib/site";
 
 export function SiteFooter() {
   return (
@@ -20,8 +21,14 @@ export function SiteFooter() {
               A volunteer-run practice club. Free forever, run by people who
               remember what it was like to be starting out.
             </p>
-            {/*   <p className="stamp-label mt-6 text-panel-fg/70">Get in touch</p> */}
-            {/* <ContactIconRow className="mt-3" /> */}
+            <p className="mt-5">
+              <a
+                href={`mailto:${SITE_EMAIL}`}
+                className="font-medium text-panel-fg underline decoration-vermilion-light decoration-2 underline-offset-4 transition-colors hover:text-vermilion-light"
+              >
+                {SITE_EMAIL}
+              </a>
+            </p>
           </div>
 
           <div className="flex flex-wrap gap-12 sm:gap-14">
