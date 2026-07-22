@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowUpRight, Check, PauseCircle } from "lucide-react";
 
-import { BecomeInterviewer } from "@/components/dashboard/become-interviewer";
 import { getCurrentUser } from "@/lib/session";
 import { getSettings } from "@/server/availability/availability";
 import { countWaitingCandidates } from "@/server/onboarding/onboarding";
