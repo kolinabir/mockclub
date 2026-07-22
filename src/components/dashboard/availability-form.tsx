@@ -8,6 +8,15 @@ import {
   saveSettingsAction,
 } from "@/app/dashboard/actions";
 import { cn } from "@/lib/utils";
+import {
+  SLOT_MINUTES,
+  TIME_STEP_MINUTES,
+  analyseRules,
+  sessionsIn,
+  snapToStep,
+  type ExpandableRule,
+  type RuleIssue,
+} from "@/server/scheduling/expand";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -28,9 +37,54 @@ export type DateOverride = {
 const fieldClass =
   "mt-1.5 h-11 rounded-none border-[1.5px] border-ink bg-paper px-3";
 
-/** Identity of a weekly block, for spotting exact duplicates. */
-const blockKey = (b: WeeklyBlock) =>
-  `${[...b.days].sort().join(",")}|${b.startTime}|${b.endTime}`;
+/**
+ * Props shared by every time field.
+ *
+ * `step` makes the native picker offer half hours only. It does NOT stop
+ * someone typing 20:09 — browsers just mark the field invalid, and we never
+ * submit a real form, so nothing would catch it. Hence the snap on blur, and
+ * the server check behind that.
+ */
+const timeFieldProps = {
+  type: "time" as const,
+  step: TIME_STEP_MINUTES * 60,
+  className: fieldClass,
+};
+
+const listDays = (days: number[]) =>
+  days.map((d) => DAY_LABELS[d]).join(", ");
+
+/**
+ * Whether an issue stops the save.
+ *
+ * Everything except `ragged` does. A ragged window still produces bookable
+ * sessions — it just wastes the tail — so it is a note, not a fault. Every
+ * other issue means at least one box on screen is doing nothing, and letting
+ * that save is how someone ends up believing they offered hours they didn't.
+ */
+const isBlocking = (issue: RuleIssue) => issue.kind !== "ragged";
+
+/** One issue, in words. Returns null for issues rendered elsewhere. */
+function describe(issue: RuleIssue): string | null {
+  switch (issue.kind) {
+    case "no-days":
+      return "Pick at least one day, or this block does nothing.";
+    case "inverted":
+      return "The end time has to be after the start time.";
+    case "too-short":
+      return `Shorter than ${SLOT_MINUTES} minutes, so no session fits — nobody can book this.`;
+    case "off-step":
+      return `Use whole or half hours — ${issue.suggestion.start}–${issue.suggestion.end}, not odd minutes.`;
+    case "ragged":
+      return `The last ${issue.wastedMinutes} minutes don't fit a whole session and won't be bookable.`;
+    case "overlap":
+      return `Overlaps the block above on ${listDays(issue.days)}. Change the days or the hours so they don't cover the same time.`;
+    case "duplicate-date":
+      return "Another entry already covers this date. Remove one of them.";
+    default:
+      return null;
+  }
+}
 
 /** "2026-08-14" -> "Fri 14 Aug 2026", in the reader's locale. */
 function formatDate(iso: string) {
@@ -55,12 +109,62 @@ function nextDay(iso: string) {
   return `${next.getUTCFullYear()}-${pad(next.getUTCMonth() + 1)}-${pad(next.getUTCDate())}`;
 }
 
+/**
+ * Warnings for one entry, plus what it actually yields.
+ *
+ * The session count is the honest answer to "did that do anything?" — a
+ * 30-minute window and a duplicated block both look fine and both produce
+ * nothing, and only a number makes that obvious.
+ */
+function Notes({
+  issues,
+  sessions,
+  perDay,
+}: {
+  issues: RuleIssue[];
+  sessions: number;
+  perDay: number;
+}) {
+  const messages = issues
+    .map((issue) => ({ text: describe(issue), blocking: isBlocking(issue) }))
+    .filter((m): m is { text: string; blocking: boolean } => m.text !== null);
+
+  if (messages.length === 0 && (sessions === 0 || perDay === 0)) return null;
+
+  return (
+    <div className="mt-3 space-y-1.5">
+      {messages.map((m, i) => (
+        <p
+          key={i}
+          role="status"
+          className={cn(
+            "text-sm",
+            // Severity is per message: a wasted-minutes note sitting under a
+            // real error shouldn't be dressed up as one.
+            m.blocking
+              ? "font-medium text-vermilion-deep"
+              : "text-ink-soft",
+          )}
+        >
+          {m.text}
+        </p>
+      ))}
+      {sessions > 0 && perDay > 0 && (
+        <p className="text-sm text-ink-soft">
+          {perDay === 1
+            ? `${sessions} bookable ${sessions === 1 ? "session" : "sessions"}.`
+            : `${sessions} bookable ${sessions === 1 ? "session" : "sessions"} on each of ${perDay} days.`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function AvailabilityForm({
   initialBlocks,
   initialOverrides,
   timeZone,
   today,
-  initialMax,
   initialPaused,
 }: {
   initialBlocks: WeeklyBlock[];
@@ -68,7 +172,6 @@ export function AvailabilityForm({
   timeZone: string;
   /** Today's date in the member's own zone — the floor for new overrides. */
   today: string;
-  initialMax: number;
   initialPaused: boolean;
 }) {
   const [pending, start] = useTransition();
@@ -79,7 +182,6 @@ export function AvailabilityForm({
       : [{ days: [2, 4], startTime: "18:00", endTime: "20:00" }],
   );
   const [overrides, setOverrides] = useState<DateOverride[]>(initialOverrides);
-  const [max, setMax] = useState(initialMax);
   const [paused, setPaused] = useState(initialPaused);
 
   const update = (i: number, patch: Partial<WeeklyBlock>) =>
@@ -96,33 +198,64 @@ export function AvailabilityForm({
     });
 
   /**
-   * Indexes of blocks that repeat an earlier one exactly.
-   *
-   * The server merges overlapping windows before carving slots, so a duplicate
-   * is harmless — and therefore invisible. Saying so beats letting someone add
-   * the same hours three times and wonder why nothing changed.
+   * Exactly what gets sent, so the warnings below describe the real payload
+   * rather than a parallel approximation of it.
    */
-  const duplicates = useMemo(() => {
-    const seen = new Set<string>();
-    const dupes = new Set<number>();
-    blocks.forEach((b, i) => {
-      if (b.days.length === 0) return;
-      const key = blockKey(b);
-      if (seen.has(key)) dupes.add(i);
-      else seen.add(key);
-    });
-    return dupes;
-  }, [blocks]);
+  const payload = useMemo<ExpandableRule[]>(
+    () => [
+      ...blocks.map((b) => ({
+        days: b.days,
+        startTime: b.startTime,
+        endTime: b.endTime,
+        date: null,
+        blocked: false,
+      })),
+      ...overrides.map((o) => ({
+        days: [],
+        // A blocked day has no hours, but the rule still has to validate.
+        startTime: o.blocked ? "00:00" : o.startTime,
+        endTime: o.blocked ? "23:30" : o.endTime,
+        date: o.date,
+        blocked: o.blocked,
+      })),
+    ],
+    [blocks, overrides],
+  );
 
-  const clashingDates = useMemo(() => {
-    const seen = new Set<string>();
-    const dupes = new Set<number>();
-    overrides.forEach((o, i) => {
-      if (seen.has(o.date)) dupes.add(i);
-      else seen.add(o.date);
-    });
-    return dupes;
-  }, [overrides]);
+  /**
+   * Warnings, keyed by position in `payload`. Blocks occupy 0..blocks.length-1
+   * and overrides follow.
+   *
+   * The same function the tests use — expansion merges overlapping windows, so
+   * a redundant block is harmless and therefore silent. This is what makes it
+   * visible.
+   */
+  const issues = useMemo(
+    () => analyseRules(payload, SLOT_MINUTES),
+    [payload],
+  );
+
+  const blockingIssues = issues.filter(isBlocking);
+
+  const issuesByIndex = useMemo(() => {
+    const map = new Map<number, RuleIssue[]>();
+    for (const issue of issues) {
+      const list = map.get(issue.index) ?? [];
+      list.push(issue);
+      map.set(issue.index, list);
+    }
+    return map;
+  }, [issues]);
+
+  const issuesFor = (index: number) => issuesByIndex.get(index) ?? [];
+
+  /** Weekly days this override supersedes — the thing people get wrong. */
+  const replacedDays = (date: string) => {
+    const [y, m, d] = date.split("-").map(Number);
+    if (!y || !m || !d) return [];
+    const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    return blocks.filter((b) => b.days.includes(weekday));
+  };
 
   function addOverride() {
     const last = overrides[overrides.length - 1]?.date;
@@ -138,27 +271,21 @@ export function AvailabilityForm({
   }
 
   function save() {
+    // Refused here rather than saved and silently repaired by expansion.
+    // Expansion merges overlaps and drops unusable windows without complaint,
+    // which is right for rendering stored data and wrong for accepting new
+    // data: it would report success for hours that don't exist.
+    if (blockingIssues.length) {
+      setMsg({
+        ok: false,
+        text: "Fix the highlighted hours first — some of them can't be booked.",
+      });
+      return;
+    }
+
     start(async () => {
       // Both kinds go over the wire together: the server replaces the whole
       // rule set, so leaving overrides out of the payload would delete them.
-      const payload = [
-        ...blocks.map((b) => ({
-          days: b.days,
-          startTime: b.startTime,
-          endTime: b.endTime,
-          date: null,
-          blocked: false,
-        })),
-        ...overrides.map((o) => ({
-          days: [],
-          // A blocked day has no hours, but the rule still has to validate.
-          startTime: o.blocked ? "00:00" : o.startTime,
-          endTime: o.blocked ? "23:59" : o.endTime,
-          date: o.date,
-          blocked: o.blocked,
-        })),
-      ];
-
       const a = await saveAvailabilityAction(
         (() => {
           const f = new FormData();
@@ -176,7 +303,6 @@ export function AvailabilityForm({
       const s = await saveSettingsAction(
         (() => {
           const f = new FormData();
-          f.set("maxSessionsPerMonth", String(max));
           if (paused) f.set("paused", "on");
           return f;
         })(),
@@ -225,19 +351,23 @@ export function AvailabilityForm({
                 <label className="text-sm">
                   <span className="stamp-label block text-ink-soft">From</span>
                   <input
-                    type="time"
+                    {...timeFieldProps}
                     value={rule.startTime}
                     onChange={(e) => update(i, { startTime: e.target.value })}
-                    className={fieldClass}
+                    onBlur={(e) =>
+                      update(i, { startTime: snapToStep(e.target.value) })
+                    }
                   />
                 </label>
                 <label className="text-sm">
                   <span className="stamp-label block text-ink-soft">To</span>
                   <input
-                    type="time"
+                    {...timeFieldProps}
                     value={rule.endTime}
                     onChange={(e) => update(i, { endTime: e.target.value })}
-                    className={fieldClass}
+                    onBlur={(e) =>
+                      update(i, { endTime: snapToStep(e.target.value) })
+                    }
                   />
                 </label>
                 {blocks.length > 1 && (
@@ -254,12 +384,11 @@ export function AvailabilityForm({
                 )}
               </div>
 
-              {duplicates.has(i) && (
-                <p role="status" className="mt-3 text-sm text-vermilion-deep">
-                  Same days and hours as a block above — this one adds nothing.
-                  Change it or remove it.
-                </p>
-              )}
+              <Notes
+                issues={issuesFor(i)}
+                sessions={sessionsIn(rule.startTime, rule.endTime, SLOT_MINUTES)}
+                perDay={rule.days.length}
+              />
             </div>
           ))}
         </div>
@@ -313,12 +442,16 @@ export function AvailabilityForm({
                           From
                         </span>
                         <input
-                          type="time"
+                          {...timeFieldProps}
                           value={o.startTime}
                           onChange={(e) =>
                             patchOverride(i, { startTime: e.target.value })
                           }
-                          className={fieldClass}
+                          onBlur={(e) =>
+                            patchOverride(i, {
+                              startTime: snapToStep(e.target.value),
+                            })
+                          }
                         />
                       </label>
                       <label className="text-sm">
@@ -326,12 +459,16 @@ export function AvailabilityForm({
                           To
                         </span>
                         <input
-                          type="time"
+                          {...timeFieldProps}
                           value={o.endTime}
                           onChange={(e) =>
                             patchOverride(i, { endTime: e.target.value })
                           }
-                          className={fieldClass}
+                          onBlur={(e) =>
+                            patchOverride(i, {
+                              endTime: snapToStep(e.target.value),
+                            })
+                          }
                         />
                       </label>
                     </>
@@ -363,12 +500,25 @@ export function AvailabilityForm({
                   </span>
                 </label>
 
-                {clashingDates.has(i) && (
-                  <p role="status" className="mt-3 text-sm text-vermilion-deep">
-                    Another entry already covers this date. Only one of them
-                    will count.
+                {!o.blocked && replacedDays(o.date).length > 0 && (
+                  <p className="mt-3 text-sm text-ink-soft">
+                    This replaces your usual{" "}
+                    {replacedDays(o.date)
+                      .map((b) => `${b.startTime}–${b.endTime}`)
+                      .join(" and ")}{" "}
+                    on that day.
                   </p>
                 )}
+
+                <Notes
+                  issues={issuesFor(blocks.length + i)}
+                  sessions={
+                    o.blocked
+                      ? 0
+                      : sessionsIn(o.startTime, o.endTime, SLOT_MINUTES)
+                  }
+                  perDay={o.blocked ? 0 : 1}
+                />
               </div>
             ))}
           </div>
@@ -384,25 +534,7 @@ export function AvailabilityForm({
       </section>
 
       <div className="border-t border-ink/15 pt-6">
-        <label className="block">
-          <span className="stamp-label text-ink-soft">
-            Max sessions per month
-          </span>
-          <input
-            type="number"
-            min={1}
-            max={30}
-            value={max}
-            onChange={(e) => setMax(Number(e.target.value))}
-            className="mt-2 h-12 w-28 rounded-none border-[1.5px] border-ink bg-paper px-3 text-base"
-          />
-        </label>
-        <p className="mt-2 text-sm text-ink-soft">
-          Your cap. One a month is genuinely useful — we would rather you stay
-          than burn out.
-        </p>
-
-        <label className="mt-5 flex items-center gap-3">
+        <label className="flex items-center gap-3">
           <input
             type="checkbox"
             checked={paused}
@@ -420,11 +552,18 @@ export function AvailabilityForm({
         <button
           type="button"
           onClick={save}
-          disabled={pending}
-          className="press press-hover h-12 rounded-none bg-vermilion-strong px-7 text-base font-medium text-chalk disabled:opacity-70"
+          disabled={pending || blockingIssues.length > 0}
+          className="press press-hover h-12 rounded-none bg-vermilion-strong px-7 text-base font-medium text-chalk disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? "Saving…" : "Save availability"}
         </button>
+        {blockingIssues.length > 0 && !msg && (
+          <p role="status" className="text-sm font-medium text-vermilion-deep">
+            {blockingIssues.length === 1
+              ? "Fix the highlighted entry to save."
+              : `Fix the ${blockingIssues.length} highlighted entries to save.`}
+          </p>
+        )}
         {msg && (
           <p
             role="status"

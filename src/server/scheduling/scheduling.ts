@@ -3,7 +3,12 @@ import "server-only";
 import { isValidTimeZone, parseHHMM, parseISODate } from "@/lib/time";
 import { getDb } from "@/server/db/mongo";
 import { getProfile } from "@/server/profile/profile";
-import { expandSlots, type ExpandableRule } from "@/server/scheduling/expand";
+import {
+  SLOT_MINUTES,
+  expandSlots,
+  isOnStep,
+  type ExpandableRule,
+} from "@/server/scheduling/expand";
 
 /**
  * Scheduling — schedules, availability rules, and materialised slots.
@@ -29,7 +34,7 @@ import { expandSlots, type ExpandableRule } from "@/server/scheduling/expand";
  *    make each bookable hour a document and claim it atomically.
  */
 
-export const SLOT_MINUTES = 60;
+export { SLOT_MINUTES };
 
 /** How far ahead slots are materialised. Bounded — see the plan's tradeoff note. */
 export const HORIZON_DAYS = 28;
@@ -136,6 +141,16 @@ function validateRule(
   // Zero-padded HH:MM sorts correctly as a string, so this is a real comparison.
   if (startTime >= endTime)
     return { ok: false, error: "The end time has to be after the start time." };
+
+  // A blocked day carries placeholder hours that nothing reads, so the grid
+  // doesn't apply to it. Everything else must land on the half hour: `HH:MM`
+  // happily accepts 20:09, and expansion would silently discard the odd nine
+  // minutes rather than complain.
+  if (r.blocked !== true && (!isOnStep(startTime) || !isOnStep(endTime)))
+    return {
+      ok: false,
+      error: "Times need to be on the hour or the half hour.",
+    };
 
   let date: string | null = null;
   if (typeof r.date === "string" && r.date.trim()) {

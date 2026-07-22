@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  analyseRules,
   expandSlots,
   localDates,
   mergeWindows,
+  isOnStep,
+  sessionsIn,
+  snapToStep,
   windowsForDate,
   type ExpandableRule,
 } from "@/server/scheduling/expand";
@@ -157,6 +161,204 @@ describe("windowsForDate", () => {
         2,
       ),
       [{ start: 1080, end: 1200 }],
+    );
+  });
+});
+
+describe("sessionsIn", () => {
+  it("counts whole slots only", () => {
+    assert.equal(sessionsIn("18:00", "20:00", 60), 2);
+    assert.equal(sessionsIn("18:00", "19:30", 60), 1); // 30 min discarded
+    assert.equal(sessionsIn("18:00", "18:30", 60), 0); // nothing bookable
+    assert.equal(sessionsIn("20:00", "18:00", 60), 0); // inverted
+    assert.equal(sessionsIn("nonsense", "18:00", 60), 0);
+  });
+});
+
+describe("snapToStep", () => {
+  it("snaps odd minutes to the nearest half hour", () => {
+    assert.equal(snapToStep("20:09"), "20:00");
+    assert.equal(snapToStep("11:10"), "11:00");
+    assert.equal(snapToStep("11:15"), "11:30"); // exactly half, rounds up
+    assert.equal(snapToStep("11:44"), "11:30");
+    assert.equal(snapToStep("11:46"), "12:00");
+  });
+
+  it("leaves times already on the grid alone", () => {
+    assert.equal(snapToStep("11:00"), "11:00");
+    assert.equal(snapToStep("11:30"), "11:30");
+    assert.equal(snapToStep("00:00"), "00:00");
+  });
+
+  it("never rounds up past the end of the day", () => {
+    // 23:59 would snap to 24:00, which is not a time.
+    assert.equal(snapToStep("23:59"), "23:30");
+    assert.equal(snapToStep("23:45"), "23:30");
+  });
+
+  it("passes malformed input through untouched", () => {
+    assert.equal(snapToStep("nonsense"), "nonsense");
+  });
+
+  it("agrees with isOnStep", () => {
+    for (const t of ["20:09", "11:15", "11:00", "23:59", "00:30"])
+      assert.equal(isOnStep(snapToStep(t)), true, `${t} should snap on-grid`);
+    assert.equal(isOnStep("20:09"), false);
+    assert.equal(isOnStep("11:30"), true);
+  });
+});
+
+describe("analyseRules", () => {
+  const kinds = (rules: ExpandableRule[]) =>
+    analyseRules(rules, 60).map((i) => i.kind);
+
+  it("flags a block whose hours are fully contained in another", () => {
+    // The reported case: 18:00-20:00 and 18:00-19:00 on the same days. Not an
+    // exact duplicate, so an equality check misses it — but expansion merges
+    // them and the second box does nothing.
+    const issues = analyseRules(
+      [
+        rule({ days: [1, 4], startTime: "18:00", endTime: "20:00" }),
+        rule({ days: [1, 4], startTime: "18:00", endTime: "19:00" }),
+      ],
+      60,
+    );
+    assert.deepEqual(issues, [
+      { kind: "overlap", index: 1, otherIndex: 0, days: [1, 4] },
+    ]);
+  });
+
+  it("flags a partial overlap and names only the shared days", () => {
+    assert.deepEqual(
+      analyseRules(
+        [
+          rule({ days: [1, 2], startTime: "09:00", endTime: "11:00" }),
+          rule({ days: [2, 3], startTime: "10:00", endTime: "12:00" }),
+        ],
+        60,
+      ),
+      [{ kind: "overlap", index: 1, otherIndex: 0, days: [2] }],
+    );
+  });
+
+  it("accepts blocks that merely touch", () => {
+    assert.deepEqual(
+      kinds([
+        rule({ days: [1], startTime: "18:00", endTime: "19:00" }),
+        rule({ days: [1], startTime: "19:00", endTime: "20:00" }),
+      ]),
+      [],
+    );
+  });
+
+  it("accepts the same hours on different days", () => {
+    assert.deepEqual(
+      kinds([
+        rule({ days: [1], startTime: "18:00", endTime: "20:00" }),
+        rule({ days: [4], startTime: "18:00", endTime: "20:00" }),
+      ]),
+      [],
+    );
+  });
+
+  it("never reports a weekly rule as clashing with a date override", () => {
+    // The override replaces that day outright, so it cannot conflict.
+    assert.deepEqual(
+      kinds([
+        rule({ days: [1], startTime: "18:00", endTime: "20:00" }),
+        rule({ date: "2026-07-27", startTime: "18:00", endTime: "19:00" }),
+      ]),
+      [],
+    );
+  });
+
+  it("flags two overrides on one date", () => {
+    assert.deepEqual(
+      kinds([
+        rule({ date: "2026-07-27", startTime: "18:00", endTime: "19:00" }),
+        rule({ date: "2026-07-27", startTime: "20:00", endTime: "21:00" }),
+      ]),
+      ["duplicate-date"],
+    );
+  });
+
+  it("flags odd minutes and suggests the grid", () => {
+    // The reported case: 18:00-20:09 looked fine and quietly discarded 9 min.
+    assert.deepEqual(
+      analyseRules([rule({ days: [0, 4], startTime: "18:00", endTime: "20:09" })], 60),
+      [
+        {
+          kind: "off-step",
+          index: 0,
+          suggestion: { start: "18:00", end: "20:00" },
+        },
+        { kind: "ragged", index: 0, wastedMinutes: 9 },
+      ],
+    );
+  });
+
+  it("accepts half hours", () => {
+    assert.deepEqual(
+      kinds([rule({ days: [1], startTime: "11:30", endTime: "12:30" })]),
+      [],
+    );
+  });
+
+  it("does not apply the grid to a blocked day's placeholder hours", () => {
+    assert.deepEqual(
+      kinds([
+        rule({ date: "2026-07-27", blocked: true, startTime: "00:00", endTime: "23:59" }),
+      ]),
+      [],
+    );
+  });
+
+  it("flags a window too short to hold one session", () => {
+    assert.deepEqual(
+      kinds([rule({ days: [1], startTime: "18:00", endTime: "18:30" })]),
+      ["too-short"],
+    );
+  });
+
+  it("flags trailing minutes that can never be booked", () => {
+    assert.deepEqual(
+      analyseRules([rule({ days: [1], startTime: "18:00", endTime: "19:30" })], 60),
+      [{ kind: "ragged", index: 0, wastedMinutes: 30 }],
+    );
+  });
+
+  it("flags a recurring block with no weekday chosen", () => {
+    assert.deepEqual(
+      kinds([rule({ days: [], startTime: "18:00", endTime: "20:00" })]),
+      ["no-days"],
+    );
+  });
+
+  it("flags an inverted block once, and doesn't also call it too short", () => {
+    assert.deepEqual(
+      kinds([rule({ days: [1], startTime: "20:00", endTime: "18:00" })]),
+      ["inverted"],
+    );
+  });
+
+  it("ignores the placeholder hours on a blocked day", () => {
+    assert.deepEqual(
+      kinds([
+        rule({ days: [1], startTime: "18:00", endTime: "20:00" }),
+        rule({ date: "2026-07-27", blocked: true, startTime: "00:00", endTime: "23:59" }),
+      ]),
+      [],
+    );
+  });
+
+  it("says nothing about a clean set", () => {
+    assert.deepEqual(
+      kinds([
+        rule({ days: [1, 4], startTime: "18:00", endTime: "20:00" }),
+        rule({ days: [6], startTime: "09:00", endTime: "12:00" }),
+        rule({ date: "2026-07-27", startTime: "18:00", endTime: "19:00" }),
+      ]),
+      [],
     );
   });
 });

@@ -127,7 +127,6 @@ export async function saveSettingsAction(formData: FormData) {
     return { ok: false as const, error: "Only interviewers can change this." };
 
   const result = await saveSettings(user!.id, {
-    maxSessionsPerMonth: formData.get("maxSessionsPerMonth"),
     paused: formData.get("paused") === "on",
   });
   if (result.ok) revalidatePath("/dashboard");

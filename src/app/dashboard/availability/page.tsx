@@ -94,7 +94,6 @@ export default async function AvailabilityPage() {
           initialOverrides={initialOverrides}
           timeZone={timeZone}
           today={today}
-          initialMax={settings?.maxSessionsPerMonth ?? 2}
           initialPaused={settings?.paused ?? false}
         />
       </div>
