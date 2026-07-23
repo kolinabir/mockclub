@@ -13,7 +13,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
-    () => false
+    () => false,
   );
 
   const isDark = resolvedTheme === "dark";

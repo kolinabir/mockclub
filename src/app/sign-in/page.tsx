@@ -4,9 +4,25 @@ import { GoogleSignIn } from "@/components/google-sign-in";
 import { SiteFooter } from "@/components/sections/site-footer";
 import { SiteHeader } from "@/components/sections/site-header";
 import { StatusBar } from "@/components/sections/status-bar";
+import { SITE_URL } from "@/lib/site";
 
+/**
+ * Deliberately noindex. A sign-in screen has no search demand and no content to
+ * rank — indexing it only competes with the homepage for the brand query. But
+ * the URL does get shared and pasted into chat apps, so it still needs a real
+ * description and OG tags: those are unrelated to ranking and always worth having.
+ */
 export const metadata: Metadata = {
   title: "Sign in",
+  description:
+    "Sign in to MockClub with Google to book a free mock interview or offer an hour as a volunteer.",
+  alternates: { canonical: "/sign-in" },
+  openGraph: {
+    title: "Sign in to MockClub",
+    description:
+      "Free mock interviews with real people. Sign in with Google — name and email only.",
+    url: `${SITE_URL}/sign-in`,
+  },
   robots: { index: false, follow: true },
 };
 

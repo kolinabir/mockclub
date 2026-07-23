@@ -3,21 +3,13 @@ import "server-only";
 import { getDb } from "@/server/db/mongo";
 
 /**
- * Interviewer availability — recurring weekly rules.
+ * An interviewer's own limits — how much they're willing to take on.
  *
- * Stored as LOCAL wall-clock ("18:00") + days[] + the IANA zone on the profile.
- * Never UTC: "Tuesdays 18:00" is an intention, not an instant. Storing it in UTC
- * silently shifts an hour at every DST transition and can't be repaired, because
- * the original zone is gone. (PLAN.md §4.)
+ * Rules, schedules and slots used to live here too; they now belong to
+ * server/scheduling, which owns the schedule (and therefore the IANA zone),
+ * date overrides and the materialised slots that make booking safe (PLAN.md §5).
+ * What's left is deliberately just burnout protection.
  */
-
-export type AvailabilityRule = {
-  userId: string;
-  /** 0=Sun … 6=Sat, in the interviewer's own local days. */
-  days: number[];
-  startTime: string; // "18:00" local
-  endTime: string; // "20:00" local
-};
 
 export type InterviewerSettings = {
   userId: string;
@@ -27,72 +19,77 @@ export type InterviewerSettings = {
   updatedAt: Date;
 };
 
-const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
-
 export type SaveResult = { ok: true } | { ok: false; error: string };
 
-export async function getAvailability(userId: string): Promise<AvailabilityRule[]> {
-  return getDb()
-    .collection<AvailabilityRule>("availabilityRule")
-    .find({ userId })
-    .toArray();
-}
+let settingsIndexEnsured = false;
 
-export async function getSettings(userId: string): Promise<InterviewerSettings | null> {
-  return getDb()
-    .collection<InterviewerSettings>("interviewerSettings")
-    .findOne({ userId });
-}
-
-export async function saveAvailability(
-  userId: string,
-  rules: { days: unknown; startTime: unknown; endTime: unknown }[]
-): Promise<SaveResult> {
-  const clean: AvailabilityRule[] = [];
-
-  for (const r of rules) {
-    const days = Array.isArray(r.days)
-      ? [...new Set(r.days.filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6))]
-      : [];
-    if (days.length === 0) continue; // a rule with no days is just noise
-
-    if (typeof r.startTime !== "string" || !HHMM.test(r.startTime))
-      return { ok: false, error: "Start time must look like 18:00." };
-    if (typeof r.endTime !== "string" || !HHMM.test(r.endTime))
-      return { ok: false, error: "End time must look like 20:00." };
-    if (r.startTime >= r.endTime)
-      return { ok: false, error: "End time must be after the start time." };
-
-    clean.push({ userId, days, startTime: r.startTime, endTime: r.endTime });
+function settings() {
+  const c = getDb().collection<InterviewerSettings>("interviewerSettings");
+  if (!settingsIndexEnsured) {
+    settingsIndexEnsured = true;
+    // Every read here filters on userId and there was no index, so both the
+    // dashboard's findOne and the admin panel's `$in` over every member were
+    // full collection scans. One document per interviewer, so it only grows.
+    void c.createIndex({ userId: 1 }, { unique: true }).catch(() => {});
   }
-
-  const coll = getDb().collection<AvailabilityRule>("availabilityRule");
-  // Replace-all: simplest correct semantics for "here is my week".
-  await coll.deleteMany({ userId });
-  if (clean.length) await coll.insertMany(clean);
-
-  return { ok: true };
+  return c;
 }
 
+export async function getSettings(
+  userId: string,
+): Promise<InterviewerSettings | null> {
+  return settings().findOne({ userId }, { projection: { _id: 0 } });
+}
+
+/** Cap applied to a member who has never chosen one. */
+export const DEFAULT_MAX_SESSIONS_PER_MONTH = 2;
+
+/**
+ * `maxSessionsPerMonth` is OPTIONAL.
+ *
+ * The availability screen no longer asks for it — a number nobody was setting
+ * is worse than a sensible default, and the cap has no effect until booking
+ * exists. Omitting it must therefore leave any existing value alone rather than
+ * reset it, so a member who did choose a cap keeps it.
+ */
 export async function saveSettings(
   userId: string,
-  input: { maxSessionsPerMonth: unknown; paused: unknown }
+  input: { maxSessionsPerMonth?: unknown; paused: unknown },
 ): Promise<SaveResult> {
-  const max = Number(input.maxSessionsPerMonth);
-  if (!Number.isInteger(max) || max < 1 || max > 30)
-    return { ok: false, error: "Cap must be between 1 and 30 sessions a month." };
+  const raw = input.maxSessionsPerMonth;
+  const provided = raw !== undefined && raw !== null && raw !== "";
 
-  await getDb().collection<InterviewerSettings>("interviewerSettings").updateOne(
-    { userId },
-    {
-      $set: {
-        maxSessionsPerMonth: max,
-        paused: Boolean(input.paused),
-        updatedAt: new Date(),
+  const set: Partial<InterviewerSettings> = {
+    paused: Boolean(input.paused),
+    updatedAt: new Date(),
+  };
+
+  if (provided) {
+    const max = Number(raw);
+    if (!Number.isInteger(max) || max < 1 || max > 30)
+      return {
+        ok: false,
+        error: "Cap must be between 1 and 30 sessions a month.",
+      };
+    set.maxSessionsPerMonth = max;
+  }
+
+  await settings().updateOne(
+      { userId },
+      {
+        $set: set,
+        // Only on insert, and only when the caller didn't supply one — a field
+        // may not appear in both $set and $setOnInsert.
+        ...(provided
+          ? {}
+          : {
+              $setOnInsert: {
+                maxSessionsPerMonth: DEFAULT_MAX_SESSIONS_PER_MONTH,
+              },
+            }),
       },
-    },
-    { upsert: true }
-  );
+      { upsert: true },
+    );
 
   return { ok: true };
 }

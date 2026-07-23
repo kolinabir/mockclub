@@ -3,7 +3,10 @@ import { SESSION_FLOW } from "@/content/session-flow";
 
 export function SessionFlow() {
   return (
-    <section id="session" className="scroll-mt-20 border-b border-ink/15 bg-panel text-panel-fg">
+    <section
+      id="session"
+      className="scroll-mt-20 border-b border-ink/15 bg-panel text-panel-fg"
+    >
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:py-28">
         <Reveal className="max-w-3xl">
           <p className="stamp-label text-vermilion-light">
@@ -26,7 +29,9 @@ export function SessionFlow() {
               delay={i * 70}
               className="grid gap-3 bg-panel p-6 sm:grid-cols-[7rem_1fr] sm:gap-8 sm:p-8"
             >
-              <p className="stamp-label pt-1 text-vermilion-light">{step.when}</p>
+              <p className="stamp-label pt-1 text-vermilion-light">
+                {step.when}
+              </p>
               <div>
                 <h3 className="display text-xl font-semibold sm:text-2xl">
                   {step.title}

@@ -21,6 +21,6 @@ export function useIsMobile() {
     subscribe,
     () => window.matchMedia(QUERY).matches,
     // Server has no viewport; assume desktop so the sidebar renders expanded.
-    () => false
+    () => false,
   );
 }

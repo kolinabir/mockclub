@@ -28,6 +28,12 @@ export async function hasOnboarded(userId: string): Promise<boolean> {
   return Boolean(doc?.onboardedAt);
 }
 
+/** Have they picked candidate/interviewer yet? Precedes the form steps. */
+export async function hasChosenRole(userId: string): Promise<boolean> {
+  const doc = await findUser(userId, { roleChosenAt: 1 });
+  return Boolean(doc?.roleChosenAt);
+}
+
 export type CompleteResult = { ok: true } | { ok: false; error: string };
 
 export async function completeOnboarding(
@@ -51,9 +57,13 @@ export async function completeOnboarding(
   ];
 
   try {
+    // Role only. `onboardedAt` belongs to the LAST form step (see steps.ts) —
+    // setting it here marked someone fully onboarded the moment they picked a
+    // role, so /onboarding sent them straight to the dashboard and all four
+    // steps were skipped.
     await updateUser(userId, {
       role: roles.join(","),
-      onboardedAt: new Date(),
+      roleChosenAt: new Date(),
     });
   } catch {
     return { ok: false, error: "Couldn't save that. Please try again." };

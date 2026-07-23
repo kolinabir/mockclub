@@ -9,8 +9,8 @@ export function StatusBar() {
         <p className="stamp-label truncate text-panel-fg/85">
           <span className="sm:hidden">Phase 01 — Gathering interviewers</span>
           <span className="hidden sm:inline">
-            Gathering interviewers · Booking opens when the calendar
-            is full enough
+            Gathering interviewers · Booking opens when the calendar is full
+            enough
           </span>
         </p>
       </div>

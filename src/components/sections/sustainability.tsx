@@ -17,7 +17,7 @@ const PILLARS: [string, string][] = [
 
 export function Sustainability() {
   return (
-    <section className="border-b border-ink/15">
+    <section id="why-free" className="scroll-mt-20 border-b border-ink/15">
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:py-28">
         <Reveal className="max-w-3xl">
           <p className="stamp-label text-vermilion-deep">
@@ -29,18 +29,14 @@ export function Sustainability() {
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-soft">
             Plenty of things are free until they are not. Here is exactly how
             MockClub pays for itself without ever charging the person who came
-            here to practise — so you can trust that the price will still be zero
-            the next time you need it.
+            here to practise — so you can trust that the price will still be
+            zero the next time you need it.
           </p>
         </Reveal>
 
         <div className="mt-12 grid gap-px border border-ink/15 bg-ink/15 sm:mt-16 md:grid-cols-3">
           {PILLARS.map(([title, body], i) => (
-            <Reveal
-              key={title}
-              delay={i * 100}
-              className="bg-paper p-7 sm:p-8"
-            >
+            <Reveal key={title} delay={i * 100} className="bg-paper p-7 sm:p-8">
               <span className="display text-4xl font-semibold text-vermilion-deep">
                 {String(i + 1).padStart(2, "0")}
               </span>

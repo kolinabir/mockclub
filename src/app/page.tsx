@@ -1,4 +1,5 @@
 import { LanguageMarquee } from "@/components/language-marquee";
+import { SectionTracker } from "@/components/section-tracker";
 import { SmoothScroll } from "@/components/smooth-scroll";
 import { StructuredData } from "@/components/structured-data";
 import { FaqSection } from "@/components/sections/faq-section";
@@ -19,6 +20,7 @@ export default function Home() {
     <>
       <StructuredData />
       <SmoothScroll />
+      <SectionTracker />
 
       <a
         href="#main"

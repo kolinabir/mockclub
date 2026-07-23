@@ -73,7 +73,9 @@ export function HeaderNav({ authSlot }: { authSlot?: ReactNode }) {
               <SheetHeader className="border-b border-ink/15">
                 <SheetTitle className="flex items-center gap-2.5">
                   <Logo className="size-7 text-ink" />
-                  <span className="display text-xl font-semibold">MockClub</span>
+                  <span className="display text-xl font-semibold">
+                    MockClub
+                  </span>
                 </SheetTitle>
               </SheetHeader>
 

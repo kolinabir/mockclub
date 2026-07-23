@@ -31,9 +31,7 @@ function CardFace({ data }: { data: MemberCardData }) {
     <article className="press h-full bg-card">
       <header className="flex items-center justify-between border-b border-ink/15 px-6 py-4">
         <p className="stamp-label">Membership card</p>
-        <p className="stamp-label text-ink-soft">
-          No. {data.no}
-        </p>
+        <p className="stamp-label text-ink-soft">No. {data.no}</p>
       </header>
 
       <div className="px-6 py-7">
@@ -46,7 +44,10 @@ function CardFace({ data }: { data: MemberCardData }) {
 
         <dl className="space-y-3.5">
           {rows.map(([label, value]) => (
-            <div key={label} className="flex items-baseline justify-between gap-4">
+            <div
+              key={label}
+              className="flex items-baseline justify-between gap-4"
+            >
               <dt className="stamp-label shrink-0 text-ink-soft">{label}</dt>
               <dd className="text-end font-medium">{value}</dd>
             </div>
@@ -86,8 +87,10 @@ function CardFace({ data }: { data: MemberCardData }) {
 /** Resting transform for a card at stack depth `rel` (0 = top of deck). */
 function restTransform(rel: number) {
   if (rel === 0) return { x: 0, y: 0, rot: 0, scale: 1, z: 50, opacity: 1 };
-  if (rel === 1) return { x: 13, y: 10, rot: 2, scale: 0.955, z: 40, opacity: 1 };
-  if (rel === 2) return { x: 26, y: 20, rot: 3.6, scale: 0.91, z: 30, opacity: 1 };
+  if (rel === 1)
+    return { x: 13, y: 10, rot: 2, scale: 0.955, z: 40, opacity: 1 };
+  if (rel === 2)
+    return { x: 26, y: 20, rot: 3.6, scale: 0.91, z: 30, opacity: 1 };
   // Deeper cards wait behind the visible three, faded out.
   return { x: 26, y: 20, rot: 3.6, scale: 0.9, z: 20, opacity: 0 };
 }

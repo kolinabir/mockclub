@@ -39,7 +39,7 @@ export function SmoothScroll() {
     // Lenis takes over the scroll position, so native hash jumps stop working.
     const onClick = (e: MouseEvent) => {
       const link = (e.target as HTMLElement | null)?.closest?.(
-        "a[href]"
+        "a[href]",
       ) as HTMLAnchorElement | null;
       if (!link) return;
 

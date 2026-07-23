@@ -17,10 +17,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 24, not 20: `npm test` runs TypeScript through node directly, which
+          # needs unflagged type stripping (22.18+) and module.registerHooks
+          # (22.15+) for the "@/" alias. On 20 the test step cannot even parse.
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build
         env:
           # Build-time placeholders only — no real secrets in CI.

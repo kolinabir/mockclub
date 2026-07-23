@@ -61,22 +61,23 @@ export default function AboutPage() {
                   A handful of developers, most of us already working in the
                   industry, kept watching the same thing happen. Good people —
                   people who could clearly do the job — were failing interviews
-                  they were qualified for. Not because they lacked the skill, but
-                  because nobody had ever put them through the real thing and told
-                  them the truth about how it went.
+                  they were qualified for. Not because they lacked the skill,
+                  but because nobody had ever put them through the real thing
+                  and told them the truth about how it went.
                 </p>
                 <p>
                   The help that exists is priced like a luxury. A single session
                   on a mainstream platform can run{" "}
                   <span className="font-semibold text-ink">$150 to $339</span> —
-                  close to a month of an entry-level salary in a lot of the world.
-                  So the people who need the practice most are exactly the people
-                  who cannot buy it. That felt backwards.
+                  close to a month of an entry-level salary in a lot of the
+                  world. So the people who need the practice most are exactly
+                  the people who cannot buy it. That felt backwards.
                 </p>
                 <p>
                   Meanwhile, thousands of us who sit on the hiring side would
                   happily give an hour. We remember who did it for us. We just
-                  never had a decent way to be found. MockClub is the decent way.
+                  never had a decent way to be found. MockClub is the decent
+                  way.
                 </p>
               </div>
             </Reveal>
@@ -111,22 +112,25 @@ export default function AboutPage() {
                 ))}
               </ul>
             </Reveal>
-            <Reveal delay={100} className="space-y-5 text-lg leading-relaxed text-panel-fg/80">
+            <Reveal
+              delay={100}
+              className="space-y-5 text-lg leading-relaxed text-panel-fg/80"
+            >
               <p>
-                Every interviewer here currently works in their field and has sat
-                on the hiring side of the table — engineers, product managers,
-                designers, marketers, data scientists, founders. Before anyone
-                appears in search, a moderator reviews their application, and most
-                verify who they are — a work email domain, or a public profile
-                like LinkedIn, X, or a personal site — so you know who you are
-                talking to.
+                Every interviewer here currently works in their field and has
+                sat on the hiring side of the table — engineers, product
+                managers, designers, marketers, data scientists, founders.
+                Before anyone appears in search, a moderator reviews their
+                application, and most verify who they are — a work email domain,
+                or a public profile like LinkedIn, X, or a personal site — so
+                you know who you are talking to.
               </p>
               <p>
-                They are not paid, and that is the point. What they get instead is
-                a public profile, a count of the sessions they have given, and a
-                badge worth putting on their own résumé. The currency here is
-                recognition and the plain satisfaction of passing on an hour that
-                someone once gave them.
+                They are not paid, and that is the point. What they get instead
+                is a public profile, a count of the sessions they have given,
+                and a badge worth putting on their own résumé. The currency here
+                is recognition and the plain satisfaction of passing on an hour
+                that someone once gave them.
               </p>
               <p>
                 To protect that goodwill, we cap how many sessions a volunteer
@@ -150,7 +154,11 @@ export default function AboutPage() {
             </Reveal>
             <div className="mt-12 grid gap-px border border-ink/15 bg-ink/15 sm:grid-cols-2">
               {PRINCIPLES.map(([title, body], i) => (
-                <Reveal key={title} delay={(i % 2) * 90} className="bg-paper p-7 sm:p-9">
+                <Reveal
+                  key={title}
+                  delay={(i % 2) * 90}
+                  className="bg-paper p-7 sm:p-9"
+                >
                   <h3 className="display text-2xl font-semibold">{title}</h3>
                   <p className="mt-3 leading-relaxed text-ink-soft">{body}</p>
                 </Reveal>
@@ -167,9 +175,9 @@ export default function AboutPage() {
                 Built in the open, by volunteers.
               </h2>
               <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
-                Whether you need the practice or you have an hour to give, there is
-                a seat for you. We are gathering interviewers first — put your name
-                down and you will be in the first group invited.
+                Whether you need the practice or you have an hour to give, there
+                is a seat for you. We are gathering interviewers first — put
+                your name down and you will be in the first group invited.
               </p>
               <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
                 <Button
@@ -179,7 +187,10 @@ export default function AboutPage() {
                 >
                   <Link href="/#join">
                     Join the club
-                    <ArrowUpRight className="size-4 rtl:-scale-x-100" strokeWidth={2.5} />
+                    <ArrowUpRight
+                      className="size-4 rtl:-scale-x-100"
+                      strokeWidth={2.5}
+                    />
                   </Link>
                 </Button>
                 <Button

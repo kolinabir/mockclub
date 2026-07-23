@@ -27,7 +27,9 @@ export function Reveal({
 
   useEffect(() => {
     const el = ref.current;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
 
     if (!el || reduced || typeof IntersectionObserver === "undefined") {
       setShown(true);
@@ -41,7 +43,7 @@ export function Reveal({
           io.disconnect();
         }
       },
-      { rootMargin: "0px 0px -12% 0px", threshold: 0.05 }
+      { rootMargin: "0px 0px -12% 0px", threshold: 0.05 },
     );
 
     io.observe(el);
@@ -60,7 +62,7 @@ export function Reveal({
       className={cn(
         "transition-[opacity,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
         shown ? "translate-y-0 opacity-100" : "translate-y-5 opacity-0",
-        className
+        className,
       )}
     >
       {children}
