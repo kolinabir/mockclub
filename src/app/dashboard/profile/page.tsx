@@ -19,7 +19,7 @@ export default async function ProfilePage() {
   const profile = await getProfile(user.id);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       <p className="stamp-label text-vermilion-deep">Profile</p>
       <h1 className="display mt-3 text-[clamp(1.75rem,4vw,2.5rem)] font-semibold">
         How we match you.
