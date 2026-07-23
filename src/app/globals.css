@@ -431,12 +431,18 @@
   }
 
   /* Collapsed to icons, a 3px inset spine on a 2rem button is a smudge —
-     the whole tile carries the state instead. */
+     the whole tile carries the state instead.
+
+     !important is load-bearing: the primitive's own `data-[active=true]:
+     bg-sidebar-accent` class lives in the `utilities` cascade layer, which
+     beats this components layer no matter the specificity. Without it the
+     tile silently falls back to the faint accent wash — under a chalk icon,
+     i.e. invisible. */
   [data-collapsible="icon"] [data-slot="sidebar-menu-button"][data-active="true"],
   [dir="rtl"] [data-collapsible="icon"] [data-slot="sidebar-menu-button"][data-active="true"] {
     box-shadow: none;
-    background: var(--vermilion-strong);
-    color: var(--chalk);
+    background: var(--vermilion-strong) !important;
+    color: var(--chalk) !important;
   }
 
   [data-collapsible="icon"] [data-slot="sidebar-menu-button"][data-active="true"] svg {

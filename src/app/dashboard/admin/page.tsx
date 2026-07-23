@@ -233,10 +233,10 @@ export default async function AdminPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="stamp-label text-ink-soft">Waitlist</h2>
+        <h2 className="stamp-label text-ink-soft">Waitlist archive</h2>
         <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-          Addresses left on the landing page, before signup —{" "}
-          {waitlistStats.total} in total.{" "}
+          Closed. Addresses left on the landing page before signup existed —{" "}
+          {waitlistStats.total} in total, and still worth an invite.{" "}
           {Object.entries(waitlistStats.byContact)
             .map(([k, n]) => `${CONTACT_LABEL[k] ?? k}: ${n}`)
             .join(" · ")}

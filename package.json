@@ -2,6 +2,12 @@
   "name": "mockclub",
   "version": "0.1.0",
   "private": true,
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kolinabir/mockclub.git"
+  },
+  "homepage": "https://mockclub.com",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

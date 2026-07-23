@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 
+import { GithubMark } from "@/components/github-mark";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,22 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { NAV_LINKS } from "@/content/nav";
+import { SITE_REPO_URL } from "@/lib/site";
 
-export function HeaderNav({ authSlot }: { authSlot?: ReactNode }) {
+export function HeaderNav({
+  authSlot,
+  signedIn = false,
+}: {
+  authSlot?: ReactNode;
+  signedIn?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+
+  // "Get an invite" was waitlist language — there is nothing to be invited to
+  // now that signup is open. A signed-in member gets sent onward instead.
+  const cta = signedIn
+    ? { href: "/dashboard", label: "Dashboard" }
+    : { href: "/#join", label: "Join the club" };
 
   return (
     <header className="sticky top-0 z-50 border-b border-ink/15 bg-paper/90 backdrop-blur-sm">
@@ -43,6 +57,18 @@ export function HeaderNav({ authSlot }: { authSlot?: ReactNode }) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Open source is a club principle, so the repo gets a permanent
+              slot rather than living only in the footer. */}
+          <a
+            href={SITE_REPO_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label="MockClub on GitHub"
+            title="MockClub on GitHub"
+            className="inline-flex size-9 items-center justify-center text-ink-soft transition-colors hover:text-vermilion"
+          >
+            <GithubMark className="size-[18px]" />
+          </a>
           <ThemeToggle />
           {authSlot}
 
@@ -50,7 +76,7 @@ export function HeaderNav({ authSlot }: { authSlot?: ReactNode }) {
             asChild
             className="hidden rounded-none border-[1.5px] border-panel bg-panel font-medium text-panel-fg shadow-[3px_3px_0_0_var(--vermilion)] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:bg-panel hover:shadow-[5px_5px_0_0_var(--vermilion)] sm:inline-flex"
           >
-            <Link href="/#join">Get an invite</Link>
+            <Link href={cta.href}>{cta.label}</Link>
           </Button>
 
           {/* Mobile menu — below md the links above are hidden entirely */}
@@ -93,10 +119,10 @@ export function HeaderNav({ authSlot }: { authSlot?: ReactNode }) {
 
                 <SheetClose asChild>
                   <Link
-                    href="/#join"
+                    href={cta.href}
                     className="press mt-6 bg-vermilion-strong px-6 py-4 text-center text-base font-medium text-chalk"
                   >
-                    Get an invite
+                    {cta.label}
                   </Link>
                 </SheetClose>
               </div>

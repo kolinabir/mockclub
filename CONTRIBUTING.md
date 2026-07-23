@@ -22,8 +22,24 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Node 20+, and a MongoDB connection string (free Atlas M0 is fine). Note that
-transactions need a replica set — Atlas is one, a local standalone `mongod` is not.
+**Node 24** (see `.nvmrc`), and a MongoDB connection string (free Atlas M0 is fine).
+Note that transactions need a replica set — Atlas is one, a local standalone
+`mongod` is not.
+
+Node 24 is a floor, not a preference: `npm test` runs TypeScript through Node
+directly, which needs unflagged type stripping (22.18+) and `module.registerHooks`
+(22.15+). On Node 20 the test step cannot parse at all. We install with **npm** —
+that is what CI runs, so a pnpm or yarn lockfile will produce diffs CI can't
+reproduce.
+
+To make yourself an admin, sign in with Google once, then promote that account:
+
+```bash
+node scripts/set-role.mjs you@example.com candidate,interviewer,admin
+```
+
+Better Auth has no bootstrap admin, so this script is the only way in. It reads
+`MONGODB_URI` straight out of `.env.local`.
 
 ## The rules that actually matter
 

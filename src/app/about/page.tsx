@@ -176,8 +176,8 @@ export default function AboutPage() {
               </h2>
               <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
                 Whether you need the practice or you have an hour to give, there
-                is a seat for you. We are gathering interviewers first — put
-                your name down and you will be in the first group invited.
+                is a seat for you. Sign in with Google and you are a member —
+                interviewers are what we need most.
               </p>
               <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
                 <Button

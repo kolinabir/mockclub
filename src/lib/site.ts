@@ -27,6 +27,9 @@ export const SITE_NAME = "MockClub";
 export const SITE_EMAIL = "contact@mockclub.com";
 export const SITE_TAGLINE = "Made by devs, for everyone.";
 
+/** Public source repo — the club is open source, so this is linked everywhere. */
+export const SITE_REPO_URL = "https://github.com/kolinabir/mockclub";
+
 export const SITE_DESCRIPTION =
   "Free mock interviews with real people. A volunteer-run club where working professionals give an hour to practise with people breaking in. No AI, no payments, any language.";
 

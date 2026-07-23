@@ -54,7 +54,7 @@ Progress and the full technical plan live in [PLAN.md](./PLAN.md).
 | UI | Tailwind v4 + shadcn/ui (radix-nova, RTL on) | RTL matters for Arabic/Urdu |
 | Video | Self-hosted Jitsi (primary) + Google Meet (opportunistic) | See [PLAN.md §6](./PLAN.md) |
 | Calendar | Google Calendar API | Free invites and reminders |
-| Dates | Luxon behind a wrapper → Temporal later | Safari hasn't shipped Temporal |
+| Dates | `Intl`-based wrapper in `src/lib/time` → Temporal later | Zero dependencies today, one swap point when Temporal ships |
 
 **There is no separate backend service.** Next.js route handlers and server actions
 are the backend. See [Architecture](#architecture) for why, and where the seam is if
@@ -63,7 +63,7 @@ that ever needs to change.
 ## Getting started
 
 ```bash
-git clone https://github.com/<org>/mockclub.git
+git clone https://github.com/kolinabir/mockclub.git
 cd mockclub
 npm install
 cp .env.example .env.local     # fill in the values, see comments in the file
@@ -72,30 +72,59 @@ npm run dev
 
 Open http://localhost:3000.
 
-You need **Node 20+** and a **MongoDB** connection string. A free
+You need **Node 24** (see `.nvmrc`) and a **MongoDB** connection string. A free
 [Atlas M0](https://www.mongodb.com/pricing) cluster is enough — and note it is a replica
 set, which local standalone `mongod` is not, so transactions only work against Atlas or a
 local replica set.
 
+Node 24 is a hard floor, not a preference: `npm test` runs TypeScript through Node
+directly, which needs unflagged type stripping (22.18+) and `module.registerHooks`
+(22.15+). On Node 20 the test step cannot even parse.
+
+Everything in `.env.example` except `MONGODB_URI`, `BETTER_AUTH_SECRET` and the Google
+OAuth pair is optional for local work. With no SMTP settings, mail is disabled rather
+than broken — the signup flow runs end to end and the log records what would have been
+sent.
+
+### Making yourself an admin
+
+Better Auth has no bootstrap admin. Sign in with Google once so the account exists, then
+promote it:
+
+```bash
+node scripts/set-role.mjs you@example.com candidate,interviewer,admin
+```
+
+That is the only way to reach `/dashboard/admin`. The script reads `MONGODB_URI` from
+`.env.local`.
+
 ## Architecture
+
+What is actually in the repo today. Booking, video and calendar are designed but not
+yet built — see [PLAN.md](./PLAN.md) for where they land.
 
 ```
 src/
 ├─ app/                  # routes only — thin. No business logic here.
-│  ├─ (marketing)/       # public landing pages
-│  ├─ (app)/             # authenticated product
-│  ├─ (admin)/           # phase toggles, moderation queue
-│  └─ api/               # webhooks, OAuth callbacks, cron
+│  ├─ about/             # public marketing pages (the landing page is app/page.tsx)
+│  ├─ sign-in/           # Google sign-in
+│  ├─ onboarding/        # role choice + the four profile steps
+│  ├─ dashboard/         # authenticated product, incl. dashboard/admin
+│  └─ api/               # OAuth callbacks (Better Auth) and cron
 ├─ components/
 │  ├─ ui/                # shadcn primitives — do not hand-edit, regenerate
 │  └─ */                 # our components
 ├─ server/               # ALL business logic lives here
-│  ├─ availability/      # rules → slots. Pure functions, heavily tested.
-│  ├─ booking/           # atomic claim, state machine, no-show handling
-│  ├─ calendar/          # Google Calendar + ICS
-│  ├─ video/             # Jitsi JWT, Meet fallback
-│  ├─ config/            # platform phase + toggles
-│  └─ db/                # collections, indexes, migrations
+│  ├─ availability/      # recurring rules, validation
+│  ├─ scheduling/        # rules → slots. Pure functions, heavily tested.
+│  ├─ auth/              # roles, Better Auth wiring
+│  ├─ onboarding/        # role assignment + step persistence
+│  ├─ profile/           # member profiles and completeness checks
+│  ├─ email/             # SMTP transport + templates
+│  ├─ admin/             # the member view behind /dashboard/admin
+│  ├─ users/             # user-document filters (see the note in users.ts)
+│  ├─ waitlist/          # READ-ONLY archive of the closed pre-signup waitlist
+│  └─ db/                # the shared Mongo client, collections, indexes
 └─ lib/                  # app-layer helpers. May use next/* (e.g. session
                         # reads next/headers) — server/ may not.
 ```

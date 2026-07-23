@@ -1,8 +1,9 @@
 import Link from "next/link";
 
+import { GithubMark } from "@/components/github-mark";
 import { Logo } from "@/components/logo";
 import { NAV_LINKS } from "@/content/nav";
-import { SITE_EMAIL } from "@/lib/site";
+import { SITE_EMAIL, SITE_REPO_URL } from "@/lib/site";
 
 export function SiteFooter() {
   return (
@@ -27,6 +28,17 @@ export function SiteFooter() {
                 className="font-medium text-panel-fg underline decoration-vermilion-light decoration-2 underline-offset-4 transition-colors hover:text-vermilion-light"
               >
                 {SITE_EMAIL}
+              </a>
+            </p>
+            <p className="mt-5">
+              <a
+                href={SITE_REPO_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex items-center gap-2.5 border border-panel-fg/25 px-4 py-2.5 text-sm font-medium text-panel-fg/85 transition-colors hover:border-vermilion-light hover:text-vermilion-light"
+              >
+                <GithubMark className="size-[18px]" />
+                Read the source on GitHub
               </a>
             </p>
           </div>

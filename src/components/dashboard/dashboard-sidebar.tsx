@@ -9,6 +9,7 @@ import {
   Shield,
 } from "lucide-react";
 
+import { GithubMark } from "@/components/github-mark";
 import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -24,6 +25,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { SITE_REPO_URL } from "@/lib/site";
 
 export type SidebarUser = {
   name: string;
@@ -122,6 +124,26 @@ export function DashboardSidebar({ user }: { user: SidebarUser }) {
           </SidebarGroup>
         )}
 
+        {/* Pinned to the bottom of the scroll area: the repo is a destination,
+            not a dashboard page, so it sits apart from the nav groups. */}
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Source on GitHub">
+                  <a
+                    href={SITE_REPO_URL}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    <GithubMark />
+                    <span>GitHub</span>
+                  </a>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
 
       {/* Footer carries exactly one thing: who is signed in. Leaving the
