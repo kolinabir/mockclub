@@ -42,7 +42,7 @@ const METHODS: {
 
 const ROLES: { value: Role; label: string }[] = [
   { value: "candidate", label: "I want to practise" },
-  { value: "interviewer", label: "I want to give an hour" },
+  { value: "interviewer", label: "I'll give an hour" },
 ];
 
 type State =
@@ -51,6 +51,11 @@ type State =
   | { kind: "done"; already: boolean; method: ContactType }
   | { kind: "error"; message: string };
 
+/**
+ * One action, one object. The role picker and contact-method picker are
+ * deliberately typographic (a segmented toggle, underlined text tabs) so the
+ * fused input+button bar is the only heavy element — the eye lands there.
+ */
 export function WaitlistForm() {
   const [method, setMethod] = useState<ContactType>("email");
   const [role, setRole] = useState<Role>("candidate");
@@ -113,7 +118,7 @@ export function WaitlistForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-lg text-start">
+    <form onSubmit={onSubmit} className="mx-auto max-w-xl">
       {/* honeypot — hidden from humans, catnip for bots */}
       <input
         type="text"
@@ -126,11 +131,33 @@ export function WaitlistForm() {
         className="absolute left-[-9999px] h-0 w-0 opacity-0"
       />
 
+      {/* 1 — who you are: one bordered object, two halves */}
       <fieldset>
-        <legend className="stamp-label text-ink-soft">
-          How should we reach you?
-        </legend>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <legend className="sr-only">Are you practising or volunteering?</legend>
+        <div className="mx-auto grid w-fit grid-cols-2 border-[1.5px] border-ink">
+          {ROLES.map((r) => (
+            <button
+              key={r.value}
+              type="button"
+              onClick={() => setRole(r.value)}
+              aria-pressed={role === r.value}
+              className={cn(
+                "min-h-11 px-5 text-sm font-medium transition-colors sm:px-7",
+                role === r.value
+                  ? "bg-ink text-paper"
+                  : "bg-transparent text-ink-soft hover:text-ink",
+              )}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      {/* 2 — where to reach you: typographic tabs, no boxes */}
+      <fieldset className="mt-8">
+        <legend className="sr-only">How should we reach you?</legend>
+        <div className="flex flex-wrap items-baseline justify-center gap-x-6 gap-y-2 sm:gap-x-7">
           {METHODS.map((m) => (
             <button
               key={m.type}
@@ -138,10 +165,10 @@ export function WaitlistForm() {
               onClick={() => setMethod(m.type)}
               aria-pressed={method === m.type}
               className={cn(
-                "min-h-11 border-[1.5px] px-3 py-2.5 text-sm font-medium transition-all",
+                "stamp-label border-b-2 pb-1.5 text-[0.6875rem] transition-colors",
                 method === m.type
-                  ? "border-ink bg-ink text-paper"
-                  : "border-ink/25 text-ink-soft hover:border-ink",
+                  ? "border-vermilion text-ink"
+                  : "border-transparent text-ink-soft hover:text-ink",
               )}
             >
               {m.label}
@@ -150,7 +177,8 @@ export function WaitlistForm() {
         </div>
       </fieldset>
 
-      <div className="mt-4">
+      {/* 3 — the one heavy element on the page: input and action, fused */}
+      <div className="press mt-4 flex flex-col bg-card transition-shadow focus-within:shadow-[5px_5px_0_0_var(--vermilion)] sm:flex-row">
         <label htmlFor="contact" className="sr-only">
           Your {active.label}
         </label>
@@ -166,55 +194,29 @@ export function WaitlistForm() {
             setValue(e.target.value);
             if (state.kind === "error") setState({ kind: "idle" });
           }}
-          className="h-13 w-full rounded-none border-[1.5px] border-ink bg-paper px-4 text-base text-ink outline-none transition-shadow placeholder:text-ink-soft focus-visible:shadow-[4px_4px_0_0_var(--vermilion)]"
+          className="h-14 min-w-0 flex-1 rounded-none border-0 bg-transparent px-5 text-base text-ink outline-none placeholder:text-ink-soft"
         />
+        <button
+          type="submit"
+          disabled={state.kind === "submitting"}
+          className="flex h-13 shrink-0 items-center justify-center gap-2 border-t-[1.5px] border-ink bg-vermilion-strong px-7 text-base font-medium text-chalk transition-opacity disabled:opacity-70 sm:h-14 sm:border-s-[1.5px] sm:border-t-0"
+        >
+          {state.kind === "submitting" ? (
+            "Adding you…"
+          ) : (
+            <>
+              Reserve my seat
+              <ArrowUpRight
+                className="size-4 rtl:-scale-x-100"
+                strokeWidth={2.5}
+              />
+            </>
+          )}
+        </button>
       </div>
 
-      <fieldset className="mt-4">
-        <legend className="sr-only">Are you practising or volunteering?</legend>
-        <div className="grid grid-cols-2 gap-2">
-          {ROLES.map((r) => (
-            <button
-              key={r.value}
-              type="button"
-              onClick={() => setRole(r.value)}
-              aria-pressed={role === r.value}
-              className={cn(
-                "min-h-11 border-[1.5px] px-3 py-2.5 text-sm font-medium transition-all",
-                role === r.value
-                  ? "border-vermilion-deep text-vermilion-deep"
-                  : "border-ink/25 text-ink-soft hover:border-ink",
-              )}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-      </fieldset>
-
-      <button
-        type="submit"
-        disabled={state.kind === "submitting"}
-        className="press press-hover mt-5 flex h-13 w-full items-center justify-center gap-2 rounded-none bg-vermilion-strong text-base font-medium text-chalk disabled:opacity-70"
-      >
-        {state.kind === "submitting" ? (
-          "Adding you…"
-        ) : (
-          <>
-            Reserve my seat
-            <ArrowUpRight
-              className="size-4 rtl:-scale-x-100"
-              strokeWidth={2.5}
-            />
-          </>
-        )}
-      </button>
-
       {state.kind === "error" && (
-        <p
-          role="alert"
-          className="mt-3 text-sm font-medium text-vermilion-deep"
-        >
+        <p role="alert" className="mt-3 text-sm font-medium text-vermilion-deep">
           {state.message}
         </p>
       )}
