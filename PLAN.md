@@ -45,10 +45,16 @@ booking-write path re-checks it server-side — never trust the client's cached 
 | `minimumNoticeHours` | Default 24–48 |
 | `rollingWindowDays` | How far ahead you can book (default 30) |
 | `announcementBanner` | Free-text + severity, shown site-wide |
-| `waitlistEnabled` | When booking is off, collect intent instead |
 
 **Design rule:** every toggle has a matching *user-facing message* field. A disabled
-feature must always explain itself and offer the waitlist, or people leave and never return.
+feature must always explain itself and offer the next best step — sign up, or set your
+hours — or people leave and never return.
+
+> **Superseded.** An earlier draft had a `waitlistEnabled` toggle: with booking off,
+> the landing page collected a contact address instead of an account. Signup replaced
+> it. The form, its API route and its domain module are gone; `server/waitlist/` remains
+> as a read-only archive so the admin panel can still reach the people who signed up
+> before there were accounts. Nothing writes to it — add a member, not a waitlist row.
 
 ---
 
@@ -562,7 +568,8 @@ counter collection for booking creation (booking spam is per-user, not per-IP).
 
 **M1 — Signup phase (Phase 0)**
 Auth + roles + profiles (track, seniority, languages, timezone) + `platformConfig`
-+ admin panel with phase/toggle control + waitlist. **Ship this to the WhatsApp group first.**
++ admin panel with phase/toggle control. **Ship this to the WhatsApp group first.**
+(The waitlist that stood in for signup here is closed — see §1.)
 
 **M2 — Supply side (Phase 1)**
 Interviewer application + moderator approval queue + schedules & availability rules
