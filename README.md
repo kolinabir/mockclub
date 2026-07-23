@@ -63,7 +63,7 @@ that ever needs to change.
 ## Getting started
 
 ```bash
-git clone https://github.com/<org>/mockclub.git
+git clone https://github.com/kolinabir/mockclub.git
 cd mockclub
 npm install
 cp .env.example .env.local     # fill in the values, see comments in the file

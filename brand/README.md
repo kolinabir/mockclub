@@ -1,5 +1,13 @@
 # MockClub brand assets
 
+> **Licensing.** The code in this repository is AGPL-3.0. The MockClub name and
+> the mark in this folder are **not** — they identify this specific club, not the
+> software. Fork the code freely, run it for your own community, keep your changes
+> open as the licence requires — but give your instance its own name and mark, so
+> nobody is misled about who is running the session they just booked. If you want
+> to reference MockClub itself (a blog post, a talk, a "powered by" line), that is
+> fine and no permission is needed.
+
 ## The mark
 A vermilion **C** holding a chevron **M** — the club holding you while you practise.
 
