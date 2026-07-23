@@ -2,7 +2,26 @@ import "server-only";
 
 import { getDb } from "@/server/db/mongo";
 
-import type { WaitlistDoc } from "./waitlist";
+/**
+ * READ-ONLY ARCHIVE.
+ *
+ * The waitlist closed when signup opened — the form, the API route and the
+ * domain module that wrote these documents are gone. What is left is a few
+ * hundred real people who left a contact address before there was an account
+ * to make, and the admin panel is the only way to reach them. Nothing writes
+ * to this collection any more; do not add a writer, add a member instead.
+ */
+
+export type ContactType = "email" | "whatsapp" | "telegram" | "linkedin";
+
+export type WaitlistDoc = {
+  contactType: ContactType;
+  contactValue: string;
+  raw: string;
+  role: "candidate" | "interviewer";
+  source: string;
+  createdAt: Date;
+};
 
 export type WaitlistStats = {
   total: number;

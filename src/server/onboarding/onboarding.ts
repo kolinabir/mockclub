@@ -72,12 +72,23 @@ export async function completeOnboarding(
   return { ok: true };
 }
 
-/** How many people are waiting to practise — used to make the ask concrete. */
+/**
+ * How many people are waiting to practise — used to make the ask concrete on an
+ * interviewer's dashboard.
+ *
+ * Counts MEMBERS, not the closed waitlist. Reading the old collection was right
+ * while signup didn't exist; the moment it did, the number stopped moving and
+ * would have gone on reading as the truth to every interviewer looking at it.
+ *
+ * Anchored to comma boundaries for the same reason as countInterviewers(): the
+ * role field is a comma-joined list, and an unanchored match would also catch a
+ * future role that merely contains "candidate".
+ */
 export async function countWaitingCandidates(): Promise<number> {
   try {
     return await getDb()
-      .collection("waitlist")
-      .countDocuments({ role: "candidate" });
+      .collection("user")
+      .countDocuments({ role: /(^|,)\s*candidate\s*(,|$)/ });
   } catch {
     return 0;
   }

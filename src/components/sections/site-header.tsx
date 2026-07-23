@@ -11,6 +11,7 @@ export async function SiteHeader() {
 
   return (
     <HeaderNav
+      signedIn={Boolean(user)}
       authSlot={
         user ? (
           <UserMenu
