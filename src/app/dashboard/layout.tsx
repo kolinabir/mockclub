@@ -69,9 +69,11 @@ export default async function DashboardLayout({
               translucent paper) so crossing into the dashboard doesn't feel
               like a different product. */}
           <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-ink/15 bg-paper/90 px-4 backdrop-blur-sm sm:px-6">
-            {/* On desktop the sidebar carries its own collapse control; this one
-                is what opens the sheet on mobile, where there is no rail. */}
-            <SidebarTrigger className="-ms-1 size-9 rounded-none border border-ink/20 text-ink hover:border-ink hover:bg-transparent md:hidden" />
+            {/* The one collapse/expand control. It lives here — outside the
+                panel it moves — so it survives collapsing on desktop, and on
+                mobile it is what opens the sheet. The rail on the panel edge
+                is the secondary affordance. */}
+            <SidebarTrigger className="-ms-1 size-9 rounded-none border border-ink/20 text-ink hover:border-ink hover:bg-transparent" />
             {/* The dashboard has its own header, so it needs its own toggle:
                 the marketing ThemeToggle lives in header-nav and never renders
                 here, leaving dark mode unreachable on every /dashboard route. */}
