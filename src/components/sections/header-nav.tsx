@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
 
+import { GithubMark } from "@/components/github-mark";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { NAV_LINKS } from "@/content/nav";
+import { SITE_REPO_URL } from "@/lib/site";
 
 export function HeaderNav({
   authSlot,
@@ -55,6 +57,18 @@ export function HeaderNav({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Open source is a club principle, so the repo gets a permanent
+              slot rather than living only in the footer. */}
+          <a
+            href={SITE_REPO_URL}
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label="MockClub on GitHub"
+            title="MockClub on GitHub"
+            className="inline-flex size-9 items-center justify-center text-ink-soft transition-colors hover:text-vermilion"
+          >
+            <GithubMark className="size-[18px]" />
+          </a>
           <ThemeToggle />
           {authSlot}
 
