@@ -13,6 +13,7 @@ import {
   validateDisciplines,
   validateFocus,
   validateInterviewTypes,
+  validateJobTarget,
   validateOptionalUrl,
   validateSearchStage,
   validateSkills,
@@ -270,7 +271,9 @@ function validateTrust(role: MemberRole) {
         ok: false,
         error:
           min === 1
-            ? "Add one link — a CV, LinkedIn, GitHub or portfolio — so your interviewer knows who they're meeting."
+            // Names the field: the CV box is a SEPARATE, optional one further
+            // down, and people fill that in and read this as already answered.
+            ? "Add one link under “A link to you” at the top — LinkedIn, GitHub or a portfolio. The CV box below doesn't count for this."
             : `Add at least ${min} links so people know who they're talking to.`,
       };
 
@@ -284,13 +287,14 @@ function validateTrust(role: MemberRole) {
     if (role === "candidate") {
       const cv = validateOptionalUrl(input.cvUrl, "CV link");
       if (!cv.ok) return cv;
-      const job = validateOptionalUrl(input.jobUrl, "job link");
+      const job = validateJobTarget(input.jobTarget ?? input.jobUrl);
       if (!job.ok) return job;
       const focus = validateFocus(input.focus);
       if (!focus.ok) return focus;
 
       data.cvUrl = cv.value;
-      data.jobUrl = job.value;
+      data.jobUrl = job.value.jobUrl;
+      data.jobTarget = job.value.jobTarget;
       data.focus = focus.value;
     }
 
@@ -460,6 +464,7 @@ async function materialize(
                     searchStage: data.searchStage ?? "exploring",
                     ...(data.cvUrl ? { cvUrl: data.cvUrl } : {}),
                     ...(data.jobUrl ? { jobUrl: data.jobUrl } : {}),
+                    ...(data.jobTarget ? { jobTarget: data.jobTarget } : {}),
                     ...(data.focus ? { focus: data.focus } : {}),
                   },
                 }

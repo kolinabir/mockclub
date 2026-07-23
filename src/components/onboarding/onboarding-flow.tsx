@@ -134,7 +134,11 @@ export function OnboardingFlow({
     (draft.searchStage as string) ?? "",
   );
   const [cvUrl, setCvUrl] = useState((draft.cvUrl as string) ?? "");
-  const [jobUrl, setJobUrl] = useState((draft.jobUrl as string) ?? "");
+  // One field, two shapes: a link to a posting or the job written out. The
+  // server decides which it is — see validateJobTarget.
+  const [jobTarget, setJobTarget] = useState(
+    (draft.jobTarget as string) ?? (draft.jobUrl as string) ?? "",
+  );
   const [focus, setFocus] = useState((draft.focus as string) ?? "");
 
   const minLinks = isCandidate ? 1 : 2;
@@ -191,7 +195,7 @@ export function OnboardingFlow({
           timeZone,
           // Ignored server-side for interviewers; harmless to always send.
           cvUrl,
-          jobUrl,
+          jobTarget,
           focus,
         };
     }
@@ -677,13 +681,12 @@ export function OnboardingFlow({
 
                 <Field
                   label="The job you're aiming at"
-                  hint="Link a job description and your interviewer can rehearse the real thing. Optional."
+                  hint="A job title, or a link to the posting — with a link your interviewer can rehearse the real thing. Optional."
                 >
                   <input
-                    value={jobUrl}
-                    onChange={(e) => setJobUrl(e.target.value)}
-                    placeholder="careers.example.com/…"
-                    inputMode="url"
+                    value={jobTarget}
+                    onChange={(e) => setJobTarget(e.target.value)}
+                    placeholder="Marketing Manager, or careers.example.com/…"
                     className={inputClass}
                   />
                 </Field>

@@ -77,3 +77,9 @@ export const SEARCH_STAGE_SLUGS = new Set<string>(
 
 /** Free-text cap for "what do you most want help with?". */
 export const MAX_FOCUS_LENGTH = 300;
+
+/**
+ * Free-text cap for "the job you're aiming at" when it isn't a link.
+ * A job title, not a description — the description is what the link is for.
+ */
+export const MAX_JOB_TARGET_LENGTH = 120;

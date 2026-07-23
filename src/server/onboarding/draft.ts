@@ -33,6 +33,8 @@ export type OnboardingDraft = {
     searchStage?: string;
     cvUrl?: string;
     jobUrl?: string;
+    /** Set instead of jobUrl when what they typed isn't a link. */
+    jobTarget?: string;
     focus?: string;
   };
   createdAt: Date;
