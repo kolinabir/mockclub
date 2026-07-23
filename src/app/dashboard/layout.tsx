@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
@@ -48,12 +49,17 @@ export default async function DashboardLayout({
   // still walk /onboarding deliberately once they hold a member role.
   if (!user.isAdmin && !(await hasOnboarded(user.id))) redirect("/onboarding");
 
+  // SidebarProvider writes `sidebar_state` on every toggle but never reads it,
+  // so a reload always came back expanded. Seed the initial state here — on the
+  // server, so the panel renders in its remembered width with no flash.
+  const collapsed = (await cookies()).get("sidebar_state")?.value === "false";
+
   return (
     // SidebarMenuButton renders a Tooltip when collapsed to icons, but this
     // version of shadcn's SidebarProvider does not mount a TooltipProvider —
     // so the tooltip throws on render. Wrapping here keeps ui/ untouched.
     <TooltipProvider delayDuration={0}>
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={!collapsed}>
         <DashboardSidebar
           user={{
             name: user.name,

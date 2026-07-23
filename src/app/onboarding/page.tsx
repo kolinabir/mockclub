@@ -5,13 +5,9 @@ import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { RoleChoice } from "@/components/onboarding/role-choice";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getCurrentUser } from "@/lib/session";
-import {
-  countWaitingCandidates,
-  hasChosenRole,
-  hasOnboarded,
-} from "@/server/onboarding/onboarding";
+import { hasChosenRole, hasOnboarded } from "@/server/onboarding/onboarding";
 import { getState } from "@/server/onboarding/steps";
-import { LANGUAGES, countInterviewers } from "@/server/profile/profile";
+import { LANGUAGES } from "@/server/profile/profile";
 
 export const dynamic = "force-dynamic";
 
@@ -42,11 +38,6 @@ export default async function OnboardingPage() {
 
   // Stage 1: pick candidate or interviewer.
   if (!(await hasChosenRole(user.id))) {
-    const [interviewers, waiting] = await Promise.all([
-      countInterviewers(),
-      countWaitingCandidates(),
-    ]);
-
     const firstName = user.name?.split(" ")[0];
 
     return (
@@ -64,7 +55,7 @@ export default async function OnboardingPage() {
         </p>
 
         <div className="mt-8">
-          <RoleChoice interviewers={interviewers} waiting={waiting} />
+          <RoleChoice />
         </div>
       </main>
     );

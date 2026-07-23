@@ -8,13 +8,7 @@ import { cn } from "@/lib/utils";
 
 type Choice = "interviewer" | "candidate";
 
-export function RoleChoice({
-  interviewers,
-  waiting,
-}: {
-  interviewers: number;
-  waiting: number;
-}) {
+export function RoleChoice() {
   const [choice, setChoice] = useState<Choice | null>(null);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -33,12 +27,14 @@ export function RoleChoice({
     value: Choice;
     title: string;
     body: string;
+    role: string;
     primary?: boolean;
     badge?: string;
   }[] = [
     {
       value: "interviewer",
       title: "I'll give an hour",
+      role: "Interviewer",
       body: "You've done the job and sat on the hiring side. Run mock interviews for people breaking in — your questions, your format, one hour at a time.",
       primary: true,
       badge: "Most needed",
@@ -46,25 +42,14 @@ export function RoleChoice({
     {
       value: "candidate",
       title: "I want to practise",
+      role: "Candidate",
       body: "Get a real interview with a working professional, in your language, and honest feedback afterwards. Always free.",
     },
   ];
 
   return (
     <div>
-      {/* The honest ask: supply is the bottleneck, so say so. */}
-      <p className="press bg-card p-4 text-sm leading-relaxed">
-        Right now <span className="font-semibold">{waiting}</span>{" "}
-        {waiting === 1 ? "person is" : "people are"} waiting to practise and
-        only{" "}
-        <span className="font-semibold text-vermilion-deep">
-          {interviewers}
-        </span>{" "}
-        {interviewers === 1 ? "person has" : "people have"} offered to
-        interview. Volunteers are what open the door.
-      </p>
-
-      <div className="mt-6 space-y-3">
+      <div className="space-y-3">
         {options.map((o) => {
           const selected = choice === o.value;
           return (
@@ -95,12 +80,24 @@ export function RoleChoice({
                     {o.body}
                   </span>
                 </span>
-                {selected && (
-                  <Check
-                    className="size-5 shrink-0 text-vermilion-deep"
-                    strokeWidth={3}
-                  />
-                )}
+                <span className="flex shrink-0 flex-col items-end gap-2">
+                  <span
+                    className={cn(
+                      "stamp-label border px-2 py-0.5",
+                      selected
+                        ? "border-vermilion-deep bg-vermilion-deep text-chalk"
+                        : "border-ink/30 text-ink-soft",
+                    )}
+                  >
+                    {o.role}
+                  </span>
+                  {selected && (
+                    <Check
+                      className="size-5 text-vermilion-deep"
+                      strokeWidth={3}
+                    />
+                  )}
+                </span>
               </span>
             </button>
           );

@@ -106,9 +106,9 @@ function Checklist({ items }: { items: ChecklistItem[] }) {
 /**
  * Why booking is closed, said plainly.
  *
- * The interviewer count on its own is a statistic about the platform and
- * identical for every viewer. Paired with the number waiting, it becomes the
- * honest answer to "why can't I book yet?" — and the argument for volunteering.
+ * Interviewers only. To someone who volunteered, the gap explains why their
+ * calendar is still quiet and why their hour matters. To a candidate it is just
+ * a queue length they can do nothing about, so they never see it.
  */
 function SupplyLine({
   interviewers,
@@ -170,11 +170,7 @@ export default async function DashboardOverview() {
           waiting={waiting}
         />
       ) : (
-        <CandidateView
-          checklist={checklist}
-          interviewers={interviewers}
-          waiting={waiting}
-        />
+        <CandidateView checklist={checklist} />
       )}
     </div>
   );
@@ -359,15 +355,7 @@ async function InterviewerView({
   );
 }
 
-function CandidateView({
-  checklist,
-  interviewers,
-  waiting,
-}: {
-  checklist: ChecklistItem[];
-  interviewers: number;
-  waiting: number;
-}) {
+function CandidateView({ checklist }: { checklist: ChecklistItem[] }) {
   const profileDone = checklist.every((i) => i.done);
 
   return (
@@ -385,7 +373,6 @@ function CandidateView({
       </section>
 
       <Checklist items={checklist} />
-      <SupplyLine interviewers={interviewers} waiting={waiting} />
     </>
   );
 }
