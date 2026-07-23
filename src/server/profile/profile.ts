@@ -6,6 +6,7 @@ import { getDb } from "@/server/db/mongo";
 import {
   INTERVIEW_TYPE_SLUGS,
   MAX_FOCUS_LENGTH,
+  MAX_JOB_TARGET_LENGTH,
   SEARCH_STAGE_SLUGS,
 } from "@/content/candidate";
 import {
@@ -166,8 +167,14 @@ export type CandidateProfile = {
   searchStage: string;
   /** A LINK to a CV, never an upload — see `validateOptionalUrl`. */
   cvUrl?: string;
-  /** The job description they're aiming at, if they have one. */
+  /** The job description they're aiming at, if they have a link to one. */
   jobUrl?: string;
+  /**
+   * The job they're aiming at, written out — "Marketing", "Senior PM at Acme".
+   * Most people don't have a posting to hand, and the field reads like it asks
+   * for a name. Both are accepted; only one of the two is ever set.
+   */
+  jobTarget?: string;
   /** "What do you most want help with?" — what an interviewer reads first. */
   focus?: string;
 };
@@ -578,6 +585,49 @@ export function validateOptionalUrl(
   const result = normalizeLink("website", v);
   if (!result.ok) return { ok: false, error: `That ${label} isn't a valid URL.` };
   return { ok: true, value: result.link.url };
+}
+
+/**
+ * "The job you're aiming at" — a link to a posting, OR the job written out.
+ *
+ * The field asks for a job, so people type a job: "Marketing", "Senior PM at
+ * Acme". Rejecting that was the wrong call — it blocked Finish on an optional
+ * field that the rest of this step explicitly treats as non-gating. Anything
+ * shaped like a URL still goes through `normalizeLink`, so the
+ * javascript:/data: guard keeps its one home; everything else is kept as text
+ * and rendered as text, never as a link.
+ */
+export function validateJobTarget(
+  v: unknown,
+): FieldResult<{ jobUrl?: string; jobTarget?: string }> {
+  if (v === undefined || v === null || (typeof v === "string" && !v.trim()))
+    return { ok: true, value: {} };
+  if (typeof v !== "string")
+    return { ok: false, error: "That doesn't look like text." };
+
+  const s = v.trim().replace(/\s+/g, " ");
+
+  // Link-shaped: an explicit scheme, a www. prefix, or a single dotted token
+  // with a letters-only TLD. A job title with a space in it never matches, and
+  // anything with a scheme is routed here so a non-http one is rejected rather
+  // than silently stored as prose.
+  const looksLikeUrl =
+    /^[a-z][a-z0-9+.-]*:/i.test(s) ||
+    /^www\./i.test(s) ||
+    /^[^\s/]+\.[a-z]{2,}(?:[/?#]\S*)?$/i.test(s);
+
+  if (looksLikeUrl) {
+    const result = normalizeLink("website", s);
+    if (!result.ok) return { ok: false, error: "That job link isn't a valid URL." };
+    return { ok: true, value: { jobUrl: result.link.url } };
+  }
+
+  if (s.length > MAX_JOB_TARGET_LENGTH)
+    return {
+      ok: false,
+      error: `Keep the job to ${MAX_JOB_TARGET_LENGTH} characters, or link the posting instead.`,
+    };
+  return { ok: true, value: { jobTarget: s } };
 }
 
 export function validateFocus(v: unknown): FieldResult<string | undefined> {
