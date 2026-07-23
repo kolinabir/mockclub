@@ -167,25 +167,26 @@ export function MemberCard() {
 
           let x = rest.x;
           let rot = rest.rot;
-          const { scale } = rest;
-          let { y, z, opacity } = rest;
+          let { y, z, opacity, scale } = rest;
           let transition = `transform ${FLY_MS}ms ${EASE}, opacity ${FLY_MS}ms ${EASE}`;
 
           if (flung?.id === i) {
-            // Flying off the top of the deck.
-            x = flung.dir * 135;
-            y = -6;
-            rot = flung.dir * 14;
+            // Retiring to the back of the deck IN PLACE — shrink, fade and
+            // settle onto the pile. Never leaves the card's footprint, so it
+            // can't overlap neighbouring content.
+            x = 26 + flung.dir * 10;
+            y = 20;
+            rot = flung.dir * 6;
+            scale = 0.9;
             opacity = 0;
             z = 60;
           } else if (isTop && (dragging || drag !== 0)) {
-            // Following the finger.
-            x = drag;
-            rot = drag * 0.04;
+            // Following the finger with rubber-band resistance so the card
+            // stays near the deck instead of travelling over the hero copy.
+            x = drag * 0.35;
+            rot = drag * 0.02;
             if (dragging) transition = "none";
           }
-
-          const unit = flung?.id === i ? "%" : "px";
 
           return (
             <div
@@ -199,7 +200,7 @@ export function MemberCard() {
                 zIndex: z,
                 opacity,
                 transition,
-                transform: `translate3d(${x}${unit}, ${y}px, 0) rotate(${rot}deg) scale(${scale})`,
+                transform: `translate3d(${x}px, ${y}px, 0) rotate(${rot}deg) scale(${scale})`,
                 cursor: isTop ? (dragging ? "grabbing" : "grab") : "default",
                 touchAction: "pan-y",
                 pointerEvents: rel === 0 && !flung ? "auto" : "none",
