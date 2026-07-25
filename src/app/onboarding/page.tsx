@@ -28,10 +28,10 @@ export default async function OnboardingPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  // Admins never see this flow — it builds a member profile they have no use
-  // for. Straight to the panel they actually came for. Checked before
-  // hasOnboarded so an operator account is never asked in the first place.
-  if (user.isAdmin) redirect("/dashboard/admin");
+  // Admins walk this flow like anyone else. Admin is an EXTENSION on top of a
+  // normal membership — the same person can be an interviewer or candidate,
+  // and blocking them here made that impossible. They are never FORCED here
+  // (the dashboard layout exempts them), but the door is open.
 
   // Finished already — this flow is one-time.
   if (await hasOnboarded(user.id)) redirect("/dashboard");

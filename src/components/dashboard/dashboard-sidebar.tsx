@@ -7,6 +7,7 @@ import {
   CircleUser,
   LayoutDashboard,
   Shield,
+  Users,
 } from "lucide-react";
 
 import { GithubMark } from "@/components/github-mark";
@@ -115,7 +116,19 @@ export function DashboardSidebar({ user }: { user: SidebarUser }) {
                   >
                     <Link href="/dashboard/admin">
                       <Shield />
-                      <span>Admin</span>
+                      <span>Overview</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith("/dashboard/admin/members")}
+                    tooltip="Members"
+                  >
+                    <Link href="/dashboard/admin/members">
+                      <Users />
+                      <span>Members</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

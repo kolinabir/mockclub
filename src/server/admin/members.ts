@@ -185,3 +185,71 @@ export async function listMembers(rowLimit = 200): Promise<MembersView> {
     truncated: rows.length > rowLimit,
   };
 }
+
+/* ---------------------------------------------------------------- directory */
+
+export const MEMBER_FILTERS = [
+  "all",
+  "interviewer",
+  "candidate",
+  "bookable",
+  "incomplete",
+] as const;
+export type MemberFilter = (typeof MEMBER_FILTERS)[number];
+
+export type MembersPage = {
+  rows: MemberRow[];
+  /** Matches after search + filter — what the pagination counts. */
+  total: number;
+  /** Every member on the platform, for "X of Y" context. */
+  grandTotal: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+};
+
+const PAGE_SIZE = 50;
+
+/**
+ * The full member directory: search + filter + pagination.
+ *
+ * Filters in memory over the same rows `listMembers` builds, rather than in an
+ * aggregation: `bookable` and `profileComplete` are computed in JS from the
+ * member-facing checklist, and re-encoding that logic as Mongo stages is how
+ * admin and member start disagreeing about what "complete" means. At directory
+ * scale (MAX_MEMBERS ceiling) the in-memory pass is microseconds.
+ */
+export async function searchMembers(input: {
+  q?: string;
+  filter?: MemberFilter;
+  page?: number;
+}): Promise<MembersPage> {
+  const { rows: all } = await listMembers(MAX_MEMBERS);
+
+  const q = (input.q ?? "").trim().toLowerCase();
+  const filter = input.filter ?? "all";
+
+  let rows = all;
+  if (q)
+    rows = rows.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q),
+    );
+  if (filter === "interviewer") rows = rows.filter((r) => r.isInterviewer);
+  else if (filter === "candidate") rows = rows.filter((r) => !r.isInterviewer);
+  else if (filter === "bookable") rows = rows.filter((r) => r.bookable);
+  else if (filter === "incomplete")
+    rows = rows.filter((r) => !r.profileComplete);
+
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const page = Math.min(Math.max(1, Math.trunc(input.page ?? 1)), pageCount);
+
+  return {
+    rows: rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    total: rows.length,
+    grandTotal: all.length,
+    page,
+    pageSize: PAGE_SIZE,
+    pageCount,
+  };
+}
