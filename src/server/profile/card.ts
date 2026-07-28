@@ -81,8 +81,41 @@ export function cardNumber(userId: string): string {
   return String(digest.readUInt32BE(0) % 100_000).padStart(5, "0");
 }
 
-/** How many skills a card can carry before it stops being a card. */
-export const MAX_CARD_SKILLS = 6;
+/**
+ * How many skills a card can carry before it stops being a card.
+ *
+ * Four, not the profile cap of twenty. Skill names are long ("Data structures
+ * & algorithms"), and the card gives the stack two lines beside a fixed-height
+ * photo — six of them turned the block into a paragraph and pushed the name
+ * clear off the top of the plate. The full list is on the public page.
+ */
+export const MAX_CARD_SKILLS = 4;
+
+/**
+ * The tech-stack LINE, bounded to what fits two lines beside the photo.
+ *
+ * A character budget rather than a CSS clamp, because the card is drawn twice —
+ * in the browser and by the PNG renderer, which ignores `line-clamp` — and the
+ * two must not show different text. It works in both because every size on the
+ * card is a fraction of its width, so characters-per-line is the same whatever
+ * the card is scaled to.
+ *
+* Cut on a word boundary: a half-word before an ellipsis reads as a bug. The
+ * budget is two lines at roughly eighteen characters each, measured — set it
+ * higher and the CSS clamp on the card starts trimming further than the PNG
+ * does, which is the exact divergence this constant exists to prevent.
+ */
+export const STACK_MAX_CHARS = 34;
+
+export function stackLine(skills: string[]): string {
+  const text = skills.join(", ");
+  if (text.length <= STACK_MAX_CHARS) return text;
+
+  const cut = text.slice(0, STACK_MAX_CHARS);
+  const at = Math.max(cut.lastIndexOf(" "), cut.lastIndexOf(","));
+  const kept = at > STACK_MAX_CHARS * 0.6 ? cut.slice(0, at) : cut;
+  return `${kept.replace(/[,\s]+$/, "")}…`;
+}
 
 function trackName(profile: ProfileDoc | null): string | undefined {
   if (!profile?.trackSlug) return undefined;

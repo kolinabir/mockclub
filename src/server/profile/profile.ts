@@ -222,6 +222,13 @@ export type ProfileDoc = {
    * — it has to be made, not inferred. See server/profile/public.ts.
    */
   publicProfile?: boolean;
+  /**
+   * The slug in /interviewers/<handle>. Lowercase, unique.
+   *
+   * Absent until they publish — see server/profile/handle.ts for the rules and
+   * for why a public URL must not be an ObjectId.
+   */
+  handle?: string;
 };
 
 const TRACK_SLUGS = new Set([...TRACKS.map((t) => t.slug), OTHER_TRACK_SLUG]);
@@ -239,6 +246,16 @@ function profiles() {
     void c.createIndex({ userId: 1 }, { unique: true }).catch(() => {});
     // Booking will need "who can interview this discipline".
     void c.createIndex({ disciplines: 1 }).catch(() => {});
+    // The handle is a public URL, so uniqueness has to be the DATABASE's job —
+    // a read-then-write check loses the race between two people publishing at
+    // once. Partial, because most profiles have no handle and a plain unique
+    // index would let exactly one of them hold the `null`.
+    void c
+      .createIndex(
+        { handle: 1 },
+        { unique: true, partialFilterExpression: { handle: { $type: "string" } } },
+      )
+      .catch(() => {});
   }
   return c;
 }
@@ -276,13 +293,45 @@ export async function setPublicProfile(
   );
 }
 
+/**
+ * Claim a handle for this member.
+ *
+ * `false` means SOMEONE ELSE HAS IT. The unique index is the real guarantee —
+ * checking first and then writing loses the race between two people publishing
+ * at the same moment — so the duplicate-key error is caught and turned into an
+ * answer rather than a 500. Same discipline as the booking writes in PLAN.md.
+ */
+export async function claimHandle(
+  userId: string,
+  handle: string,
+): Promise<boolean> {
+  try {
+    await profiles().updateOne(
+      { userId },
+      { $set: { handle, updatedAt: new Date() } },
+      { upsert: true },
+    );
+    return true;
+  } catch (err) {
+    if ((err as { code?: number }).code === 11000) return false;
+    throw err;
+  }
+}
+
+export async function findProfileByHandle(
+  handle: string,
+): Promise<ProfileDoc | null> {
+  return profiles().findOne({ handle }, { projection: { _id: 0 } });
+}
+
 /** Candidate list for the sitemap — the real gates are in profile/public.ts. */
 export async function listPublicProfileIds(
   limit = 5000,
 ): Promise<{ userId: string; updatedAt: Date }[]> {
   const docs = await profiles()
     .find(
-      { publicProfile: true },
+      // A public page with no handle has no URL, so it cannot be listed.
+      { publicProfile: true, handle: { $type: "string" } },
       { projection: { _id: 0, userId: 1, updatedAt: 1 }, limit },
     )
     .toArray();

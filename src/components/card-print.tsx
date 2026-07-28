@@ -1,5 +1,5 @@
 import { zoneLabel } from "@/lib/time";
-import type { CardData } from "@/server/profile/card";
+import { stackLine, type CardData } from "@/server/profile/card";
 
 /**
  * The card, laid out for the PNG renderer.
@@ -32,7 +32,7 @@ const PAD = 53;
 /** The rules bleed wider than the type block, as they do on the card. */
 const BLEED = 25;
 const CONTENT = W - PAD * 2;
-const PHOTO_W = Math.round(CONTENT * 0.51);
+const PHOTO_W = Math.round(CONTENT * 0.5);
 const PHOTO_H = Math.round(PHOTO_W * 1.5);
 const COL_GAP = 36;
 const COL_W = CONTENT - PHOTO_W - COL_GAP;
@@ -235,8 +235,10 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
 
             <Rule width={COL_W} top={48} />
             <div style={{ ...label(), marginTop: 33 }}>Tech stack</div>
+            {/* Clamped for the same reason as the card: the column must not
+                outgrow the plate beside it. */}
             <div style={{ ...value, marginTop: 28 }}>
-              {data.skills.join(", ")}
+              {stackLine(data.skills)}
             </div>
           </div>
         </div>

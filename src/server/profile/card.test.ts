@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { buildCard, cardNumber, MAX_CARD_SKILLS } from "@/server/profile/card";
+import {
+  buildCard,
+  cardNumber,
+  MAX_CARD_SKILLS,
+  STACK_MAX_CHARS,
+  stackLine,
+} from "@/server/profile/card";
 import type { ProfileDoc } from "@/server/profile/profile";
 
 /**
@@ -144,5 +150,55 @@ describe("buildCard data", () => {
     const { data } = buildCard(interviewer, without({ timeZone: "" }));
     assert.equal(data.timeZone, "UTC");
     assert.equal(data.photoKey !== null, true);
+  });
+});
+
+describe("stackLine", () => {
+  it("leaves a short stack alone", () => {
+    assert.equal(stackLine(["Nextjs", "Gsap"]), "Nextjs, Gsap");
+  });
+
+  it("bounds a long one and marks the cut", () => {
+    const line = stackLine([
+      "Data structures & algorithms",
+      "System design",
+      "Behavioural interviews",
+      "Testing strategy",
+    ]);
+    assert.ok(line.length <= STACK_MAX_CHARS + 1, line);
+    assert.ok(line.endsWith("…"), line);
+  });
+
+  it("cuts on a word boundary, never mid-word", () => {
+    const skills = ["Kubernetes orchestration and service meshes"];
+    const kept = stackLine(skills).replace(/…$/, "");
+    const full = skills.join(", ");
+
+    // What survives is a prefix of the input...
+    assert.ok(full.startsWith(kept), kept);
+    // ...and it stops where a word does, rather than inside one.
+    assert.ok(/^\s|^$/.test(full.slice(kept.length)), kept);
+  });
+
+  it("never leaves a dangling comma before the ellipsis", () => {
+    const line = stackLine(["JavaScript", "TypeScript", "React", "Next.js"]);
+    assert.ok(!line.includes(",…"), line);
+  });
+
+  it("only ever removes from the end", () => {
+    // The card and the PNG both call this, so whatever it returns is what a
+    // member sees on screen AND in the file they download. It must never
+    // reorder or reword — only stop early.
+    for (const skills of [
+      ["Nextjs", "Gsap"],
+      ["JavaScript", "TypeScript", "React", "Next.js"],
+      ["Data structures & algorithms", "System design", "Testing strategy"],
+      ["A".repeat(80)],
+    ]) {
+      const full = skills.join(", ");
+      const line = stackLine(skills);
+      assert.ok(full.startsWith(line.replace(/…$/, "")), line);
+      assert.ok(line.length <= STACK_MAX_CHARS + 1, line);
+    }
   });
 });

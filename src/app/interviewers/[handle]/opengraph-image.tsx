@@ -8,7 +8,7 @@ import {
   SHADOW,
 } from "@/components/card-print";
 import { loadGoogleFont } from "@/server/fonts/google";
-import { getPublicInterviewer } from "@/server/profile/public";
+import { getPublicInterviewerByHandle } from "@/server/profile/public";
 import { getObject } from "@/server/storage/r2";
 
 /**
@@ -18,7 +18,7 @@ import { getObject } from "@/server/storage/r2";
  * is the thing they chose to publish, and reusing it means the link preview and
  * the page can never say different things.
  *
- * Gated by the same `getPublicInterviewer` as the page, so an unpublished
+ * Gated by the same resolver as the page, so an unpublished
  * member's face cannot be pulled out through the image route.
  */
 
@@ -50,10 +50,10 @@ async function photoDataUri(key: string | null): Promise<string | null> {
 export default async function Image({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ handle: string }>;
 }) {
-  const { id } = await params;
-  const person = await getPublicInterviewer(id);
+  const { handle } = await params;
+  const person = await getPublicInterviewerByHandle(handle);
 
   // A blank sheet rather than a 404: an unfurler that gets an error shows the
   // raw URL, which is a worse thing to publish than nothing.

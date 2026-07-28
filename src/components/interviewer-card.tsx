@@ -18,7 +18,7 @@ import { Logo } from "@/components/logo";
 import { photoUrl } from "@/lib/photo";
 import { zoneLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import type { CardData } from "@/server/profile/card";
+import { stackLine, type CardData } from "@/server/profile/card";
 
 /**
  * The printed card.
@@ -127,7 +127,7 @@ export function InterviewerCard({
                 the sides, which is the right loss for a head-and-shoulders shot
                 and the wrong one to avoid: a square plate is half the height of
                 this one and the card stops balancing. */}
-            <div className="aspect-[2/3] w-[51%] shrink-0 overflow-hidden rounded-[3cqw] bg-lime">
+            <div className="aspect-[2/3] w-[50%] shrink-0 overflow-hidden rounded-[3cqw] bg-lime">
               {data.photoKey ? (
                 // A plain <img>, same reasoning as the profile page: the bytes
                 // are already a 512px square, so there is nothing for
@@ -150,7 +150,7 @@ export function InterviewerCard({
                 {data.name}
               </h2>
               <p className={cn("mt-[3cqw]", LABEL)}>{data.position}</p>
-              <p className={cn("mt-[2.2cqw]", VALUE)}>{data.company}</p>
+              <p className={cn("mt-[2.2cqw] line-clamp-1", VALUE)}>{data.company}</p>
 
               <Rule className="mt-[6cqw]" />
               <p className={cn("mt-[3cqw]", LABEL)}>Track</p>
@@ -163,13 +163,17 @@ export function InterviewerCard({
                 >
                   <TrackIcon className="size-[3cqw]" strokeWidth={2} />
                 </span>
-                <span className="min-w-0">{data.track}</span>
+                <span className="line-clamp-2 min-w-0">{data.track}</span>
               </div>
 
               <Rule className="mt-[4.8cqw]" />
               <p className={cn("mt-[3.3cqw]", LABEL)}>Tech stack</p>
-              <p className={cn("mt-[2.8cqw]", VALUE)}>
-                {data.skills.join(", ")}
+              {/* Bounded so the column can never outgrow the plate beside it.
+                  stackLine does the trimming so the PNG shows the same words;
+                  line-clamp is the belt-and-braces for scripts whose glyphs run
+                  wider per character than the budget assumes. */}
+              <p className={cn("mt-[2.8cqw] line-clamp-2", VALUE)}>
+                {stackLine(data.skills)}
               </p>
             </div>
           </div>

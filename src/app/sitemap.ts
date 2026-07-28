@@ -17,7 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Never fail the whole sitemap over the database. One missing section still
   // gets the site indexed; a 500 gets nothing indexed.
-  let interviewers: { id: string; updatedAt: Date }[] = [];
+  let interviewers: { handle: string; updatedAt: Date }[] = [];
   try {
     interviewers = await listPublicInterviewers();
   } catch {
@@ -41,7 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     },
     ...interviewers.map((i) => ({
-      url: `${SITE_URL}/interviewers/${i.id}`,
+      url: `${SITE_URL}/interviewers/${i.handle}`,
       lastModified: i.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.5,

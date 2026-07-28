@@ -9,8 +9,8 @@ import {
   saveAvailability as saveSchedule,
   syncTimeZone,
 } from "@/server/scheduling/scheduling";
-import { saveProfile } from "@/server/profile/profile";
-import { setProfileVisibility } from "@/server/profile/public";
+import { getProfile, saveProfile } from "@/server/profile/profile";
+import { changeHandle, setProfileVisibility } from "@/server/profile/public";
 import {
   MAX_PHOTO_BYTES,
   removeInterviewerPhoto,
@@ -152,14 +152,6 @@ export async function saveSettingsAction(formData: FormData) {
 }
 
 /**
- * Store an interviewer's photo.
- *
- * Throttled harder than the rest: this one carries a file. The browser squares
- * and re-encodes before sending, so the usual payload is tens of KB — but this
- * action is a public endpoint like any other, and nothing stops a caller from
- * skipping the browser entirely, so the size check is repeated server-side.
- */
-/**
  * The name on the card.
  *
  * Its own action rather than a field on saveProfileAction, because it writes to
@@ -198,10 +190,39 @@ export async function setProfileVisibilityAction(isPublic: boolean) {
 
   revalidatePath("/dashboard/card");
   revalidatePath("/dashboard/profile");
-  revalidatePath(`/interviewers/${user!.id}`);
-  return { ok: true as const, isPublic: result.isPublic };
+  if (result.handle) revalidatePath(`/interviewers/${result.handle}`);
+  return { ok: true as const, isPublic: result.isPublic, handle: result.handle };
 }
 
+/**
+ * Rename the public page.
+ *
+ * Both the old and the new URL are revalidated: the old one has to start
+ * 404ing immediately, or a cached copy keeps serving a page at an address the
+ * member has already given up.
+ */
+export async function setHandleAction(formData: FormData) {
+  const { user, fail } = await guard("handle", 10);
+  if (fail) return fail;
+
+  const previous = (await getProfile(user!.id))?.handle;
+  const result = await changeHandle(user!.id, formData.get("handle"));
+  if (!result.ok) return { ok: false as const, error: result.error };
+
+  revalidatePath("/dashboard/card");
+  if (previous) revalidatePath(`/interviewers/${previous}`);
+  revalidatePath(`/interviewers/${result.handle}`);
+  return { ok: true as const, handle: result.handle };
+}
+
+/**
+ * Store an interviewer's photo.
+ *
+ * Throttled harder than the rest: this one carries a file. The browser squares
+ * and re-encodes before sending, so the usual payload is tens of KB — but this
+ * action is a public endpoint like any other, and nothing stops a caller from
+ * skipping the browser entirely, so the size check is repeated server-side.
+ */
 export async function uploadInterviewerPhotoAction(formData: FormData) {
   const { user, fail } = await guard("photo", 6);
   if (fail) return fail;

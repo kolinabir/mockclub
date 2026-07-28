@@ -144,7 +144,8 @@ export default async function CardPage() {
             <PublishCard
               isPublic={visibility.isPublic}
               canPublish={visibility.canPublish}
-              url={`${SITE_URL}/interviewers/${user.id}`}
+              handle={visibility.handle}
+              origin={SITE_URL}
             />
           </div>
         ) : (

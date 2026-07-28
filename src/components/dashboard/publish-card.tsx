@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Check, Copy, ExternalLink, Globe } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import { Check, Copy, ExternalLink, Globe, Pencil } from "lucide-react";
 
-import { setProfileVisibilityAction } from "@/app/dashboard/actions";
+import {
+  setHandleAction,
+  setProfileVisibilityAction,
+} from "@/app/dashboard/actions";
+import { cn } from "@/lib/utils";
 
 /**
  * The switch that puts an interviewer's page on the open web.
@@ -14,20 +18,35 @@ import { setProfileVisibilityAction } from "@/app/dashboard/actions";
  * different decision, so it gets its own deliberate act — a member who never
  * touches this control has no public page, which is the right failure.
  */
+/** Same control style as the rest of the dashboard forms. */
+const FIELD =
+  "rounded-none border-[1.5px] border-ink/35 bg-paper px-3 text-base text-ink " +
+  "outline-none transition-all placeholder:text-ink-soft/70 " +
+  "focus-visible:border-ink focus-visible:shadow-[3px_3px_0_0_var(--vermilion)]";
+
 export function PublishCard({
   isPublic: initial,
   canPublish,
-  url,
+  handle: initialHandle,
+  origin,
 }: {
   isPublic: boolean;
   canPublish: boolean;
-  /** Absolute, so the copied link works when pasted anywhere. */
-  url: string;
+  /** Absent until the first publish, which is when one gets allocated. */
+  handle?: string;
+  /** Absolute site origin, so a copied link works when pasted anywhere. */
+  origin: string;
 }) {
   const [isPublic, setIsPublic] = useState(initial);
+  const [handle, setHandle] = useState(initialHandle);
+  const [draft, setDraft] = useState(initialHandle ?? "");
+  const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const url = handle ? `${origin}/interviewers/${handle}` : "";
 
   function toggle() {
     const next = !isPublic;
@@ -41,7 +60,37 @@ export function PublishCard({
       if (!res.ok) {
         setIsPublic(!next);
         setError(res.error);
+        return;
       }
+      // Publishing for the first time is what allocates the link.
+      if (res.handle) {
+        setHandle(res.handle);
+        setDraft(res.handle);
+      }
+    });
+  }
+
+  function openRename() {
+    setDraft(handle ?? "");
+    setError(null);
+    setEditing(true);
+    requestAnimationFrame(() => inputRef.current?.select());
+  }
+
+  function saveHandle() {
+    setError(null);
+    start(async () => {
+      const fd = new FormData();
+      fd.set("handle", draft);
+
+      const res = await setHandleAction(fd);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setHandle(res.handle);
+      setDraft(res.handle);
+      setEditing(false);
     });
   }
 
@@ -104,32 +153,106 @@ export function PublishCard({
         </p>
       )}
 
-      {isPublic && (
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-ink/15 pt-5">
-          <code className="min-w-0 flex-1 truncate border-[1.5px] border-ink/15 bg-paper px-3 py-2.5 text-sm text-ink-soft">
-            {url.replace(/^https?:\/\//, "")}
-          </code>
+      {isPublic && handle && !editing && (
+        <div className="mt-5 border-t border-ink/15 pt-5">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* The handle is the part they own, so it's the part that's set in
+                ink — the origin around it is chrome. */}
+            <code className="min-w-0 flex-1 truncate border-[1.5px] border-ink/15 bg-paper px-3 py-2.5 text-sm text-ink-soft">
+              {origin.replace(/^https?:\/\//, "")}/interviewers/
+              <span className="font-semibold text-ink">{handle}</span>
+            </code>
+            <button
+              type="button"
+              onClick={copy}
+              className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink/30 px-4 text-sm font-medium transition-colors hover:border-ink"
+            >
+              {copied ? (
+                <Check className="size-4 text-olive" strokeWidth={2.5} />
+              ) : (
+                <Copy className="size-4" strokeWidth={2.5} />
+              )}
+              {copied ? "Copied" : "Copy"}
+            </button>
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink/30 px-4 text-sm font-medium transition-colors hover:border-ink"
+            >
+              <ExternalLink className="size-4" strokeWidth={2.5} />
+              Visit
+            </a>
+          </div>
+
           <button
             type="button"
-            onClick={copy}
-            className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink/30 px-4 text-sm font-medium transition-colors hover:border-ink"
+            onClick={openRename}
+            className="stamp-label mt-3 inline-flex items-center gap-1.5 text-[0.625rem] text-ink-soft transition-colors hover:text-vermilion-deep"
           >
-            {copied ? (
-              <Check className="size-4 text-olive" strokeWidth={2.5} />
-            ) : (
-              <Copy className="size-4" strokeWidth={2.5} />
-            )}
-            {copied ? "Copied" : "Copy"}
+            <Pencil className="size-3" strokeWidth={2.5} />
+            Change the link
           </button>
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex min-h-11 items-center gap-2 border-[1.5px] border-ink/30 px-4 text-sm font-medium transition-colors hover:border-ink"
-          >
-            <ExternalLink className="size-4" strokeWidth={2.5} />
-            Visit
-          </a>
+        </div>
+      )}
+
+      {isPublic && handle && editing && (
+        <div className="mt-5 border-t border-ink/15 pt-5">
+          <label htmlFor="handle" className="text-sm font-medium">
+            Your link
+          </label>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-ink-soft">
+              {origin.replace(/^https?:\/\//, "")}/interviewers/
+            </span>
+            <input
+              id="handle"
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  saveHandle();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  setEditing(false);
+                  setError(null);
+                }
+              }}
+              maxLength={30}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className={cn(FIELD, "h-11 min-w-0 flex-1")}
+            />
+          </div>
+          <p className="mt-2 text-sm text-ink-soft">
+            Letters, numbers and hyphens. Changing it breaks the old link —
+            anywhere you&apos;ve already pasted it will stop working.
+          </p>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={saveHandle}
+              disabled={pending}
+              className="h-11 rounded-none bg-vermilion-strong px-6 text-sm font-medium text-chalk transition-opacity disabled:opacity-70"
+            >
+              {pending ? "Saving…" : "Save"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(false);
+                setError(null);
+              }}
+              disabled={pending}
+              className="h-11 border-[1.5px] border-ink/30 px-5 text-sm font-medium text-ink-soft transition-colors hover:border-ink hover:text-ink disabled:opacity-70"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
