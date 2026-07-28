@@ -4,10 +4,13 @@ import { redirect } from "next/navigation";
 import { ArrowUpRight, Check, Download, Lock } from "lucide-react";
 
 import { BecomeInterviewer } from "@/components/dashboard/become-interviewer";
+import { PublishCard } from "@/components/dashboard/publish-card";
 import { InterviewerCard } from "@/components/interviewer-card";
 import { getCurrentUser } from "@/lib/session";
+import { SITE_URL } from "@/lib/site";
 import { buildCard, type CardRequirement } from "@/server/profile/card";
 import { getProfile } from "@/server/profile/profile";
+import { visibilityOf } from "@/server/profile/public";
 
 /**
  * Your card.
@@ -107,6 +110,7 @@ export default async function CardPage() {
 
   const profile = await getProfile(user.id);
   const { ready, requirements, data } = buildCard(user, profile);
+  const visibility = visibilityOf(user, profile);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -136,6 +140,12 @@ export default async function CardPage() {
               <Download className="size-4" strokeWidth={2.5} />
               Download as PNG
             </a>
+
+            <PublishCard
+              isPublic={visibility.isPublic}
+              canPublish={visibility.canPublish}
+              url={`${SITE_URL}/interviewers/${user.id}`}
+            />
           </div>
         ) : (
           // Both children occupy the same grid cell, so the container is as

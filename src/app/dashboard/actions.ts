@@ -10,6 +10,7 @@ import {
   syncTimeZone,
 } from "@/server/scheduling/scheduling";
 import { saveProfile } from "@/server/profile/profile";
+import { setProfileVisibility } from "@/server/profile/public";
 import {
   MAX_PHOTO_BYTES,
   removeInterviewerPhoto,
@@ -179,6 +180,26 @@ export async function saveDisplayNameAction(formData: FormData) {
   revalidatePath("/dashboard/profile");
   revalidatePath("/dashboard/card");
   return { ok: true as const, name: result.value };
+}
+
+/**
+ * Publish or unpublish the public interviewer page.
+ *
+ * The rule lives in server/profile/public.ts — including the deliberate
+ * asymmetry that turning it OFF is never gated, so a page can always be taken
+ * down even if it would no longer qualify to go up.
+ */
+export async function setProfileVisibilityAction(isPublic: boolean) {
+  const { user, fail } = await guard("visibility", 10);
+  if (fail) return fail;
+
+  const result = await setProfileVisibility(user!, isPublic);
+  if (!result.ok) return { ok: false as const, error: result.error };
+
+  revalidatePath("/dashboard/card");
+  revalidatePath("/dashboard/profile");
+  revalidatePath(`/interviewers/${user!.id}`);
+  return { ok: true as const, isPublic: result.isPublic };
 }
 
 export async function uploadInterviewerPhotoAction(formData: FormData) {

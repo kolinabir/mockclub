@@ -213,6 +213,15 @@ export type ProfileDoc = {
    * <img> can use. Interviewers only.
    */
   photo?: { key: string; updatedAt: Date };
+  /**
+   * Opt-in to a public page at /interviewers/[id]. Absent means NO.
+   *
+   * Deliberately not derived from "is an interviewer with a finished profile".
+   * Everything else here is shown to one matched candidate; this puts a face, a
+   * job title and an employer on the open web, and that is a different decision
+   * — it has to be made, not inferred. See server/profile/public.ts.
+   */
+  publicProfile?: boolean;
 };
 
 const TRACK_SLUGS = new Set([...TRACKS.map((t) => t.slug), OTHER_TRACK_SLUG]);
@@ -245,6 +254,40 @@ function profiles() {
  */
 export async function getProfile(userId: string): Promise<ProfileDoc | null> {
   return profiles().findOne({ userId }, { projection: { _id: 0 } });
+}
+
+/**
+ * The public-page switch. Lives here because `profiles()` does — the collection
+ * handle stays private to this module, and every write to it is named.
+ *
+ * OFF is an `$unset`, not `false`: absent already means no everywhere that
+ * reads it, and it keeps the sitemap's `{ publicProfile: true }` filter working
+ * on an index rather than on a field full of falses.
+ */
+export async function setPublicProfile(
+  userId: string,
+  isPublic: boolean,
+): Promise<void> {
+  await profiles().updateOne(
+    { userId },
+    isPublic
+      ? { $set: { publicProfile: true, updatedAt: new Date() } }
+      : { $unset: { publicProfile: "" }, $set: { updatedAt: new Date() } },
+  );
+}
+
+/** Candidate list for the sitemap — the real gates are in profile/public.ts. */
+export async function listPublicProfileIds(
+  limit = 5000,
+): Promise<{ userId: string; updatedAt: Date }[]> {
+  const docs = await profiles()
+    .find(
+      { publicProfile: true },
+      { projection: { _id: 0, userId: 1, updatedAt: 1 }, limit },
+    )
+    .toArray();
+
+  return docs.map((d) => ({ userId: d.userId, updatedAt: d.updatedAt }));
 }
 
 export async function saveProfile(
