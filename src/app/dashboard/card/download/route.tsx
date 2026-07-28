@@ -62,14 +62,14 @@ export async function GET() {
 
   const [photo, display, body, mono] = await Promise.all([
     photoDataUri(data.photoKey),
-    loadGoogleFont("Fraunces:wght@600"),
-    loadGoogleFont("Archivo:wght@600"),
+    loadGoogleFont("Fraunces:wght@700"),
+    loadGoogleFont("Archivo:wght@700"),
     loadGoogleFont("Fragment+Mono"),
   ]);
 
   const fonts = [
-    display ? { name: DISPLAY, data: display, weight: 600 as const } : null,
-    body ? { name: BODY, data: body, weight: 600 as const } : null,
+    display ? { name: DISPLAY, data: display, weight: 700 as const } : null,
+    body ? { name: BODY, data: body, weight: 700 as const } : null,
     mono ? { name: MONO, data: mono, weight: 400 as const } : null,
   ].filter((f) => f !== null);
 

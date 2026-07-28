@@ -66,14 +66,14 @@ export default async function Image({
 
   const [photo, display, body, mono] = await Promise.all([
     photoDataUri(person.card.photoKey),
-    loadGoogleFont("Fraunces:wght@600"),
-    loadGoogleFont("Archivo:wght@600"),
+    loadGoogleFont("Fraunces:wght@700"),
+    loadGoogleFont("Archivo:wght@700"),
     loadGoogleFont("Fragment+Mono"),
   ]);
 
   const fonts = [
-    display ? { name: "Fraunces", data: display, weight: 600 as const } : null,
-    body ? { name: "Archivo", data: body, weight: 600 as const } : null,
+    display ? { name: "Fraunces", data: display, weight: 700 as const } : null,
+    body ? { name: "Archivo", data: body, weight: 700 as const } : null,
     mono ? { name: "FragmentMono", data: mono, weight: 400 as const } : null,
   ].filter((f) => f !== null);
 

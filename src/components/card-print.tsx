@@ -26,7 +26,7 @@ export const SHADOW = 12;
  * any remaining slack, which keeps the footer band welded to the bottom edge
  * rather than floating above it when a card runs short.
  */
-export const CARD_H = 1467;
+export const CARD_H = 1418;
 
 const PAD = 53;
 /** The rules bleed wider than the type block, as they do on the card. */
@@ -34,7 +34,7 @@ const BLEED = 25;
 const CONTENT = W - PAD * 2;
 const PHOTO_W = Math.round(CONTENT * 0.51);
 const PHOTO_H = Math.round(PHOTO_W * 1.5);
-const COL_GAP = 42;
+const COL_GAP = 36;
 const COL_W = CONTENT - PHOTO_W - COL_GAP;
 
 /* Resolved from the live stylesheet — the renderer has no CSS variables, and
@@ -66,7 +66,7 @@ const label = (size = 24.5) =>
 const value = {
   fontFamily: BODY,
   fontSize: 32,
-  fontWeight: 600,
+  fontWeight: 700,
   color: INK,
   lineHeight: 1.3,
 } as const;
@@ -129,7 +129,7 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
           display: "flex",
           flexDirection: "column",
           flexGrow: 1,
-          padding: `62px ${PAD}px 54px ${PAD}px`,
+          padding: `50px ${PAD}px 50px ${PAD}px`,
         }}
       >
         <div
@@ -139,18 +139,18 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
             alignItems: "baseline",
           }}
         >
-          <div style={{ ...label(), color: INK }}>Interviewer card</div>
-          <div style={label()}>{`No. ${data.no}`}</div>
+          <div style={{ ...label(28), color: INK }}>Interviewer card</div>
+          <div style={label(28)}>{`No. ${data.no}`}</div>
         </div>
 
         <div style={{ display: "flex", marginLeft: -BLEED }}>
-          <Rule width={CONTENT + BLEED * 2} top={42} />
+          <Rule width={CONTENT + BLEED * 2} top={32} />
         </div>
 
         <div
           style={{
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-end",
             marginTop: 40,
           }}
         >
@@ -176,19 +176,22 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
             ) : null}
           </div>
 
+          {/* Held just off the plate's bottom edge, so the two blocks read as
+              sitting on the same line rather than one being flush. */}
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               width: COL_W,
               marginLeft: COL_GAP,
+              paddingBottom: 18,
             }}
           >
             <div
               style={{
                 fontFamily: DISPLAY,
                 fontSize: 70,
-                fontWeight: 600,
+                fontWeight: 700,
                 color: INK,
                 lineHeight: 0.95,
                 letterSpacing: -1.8,
@@ -213,7 +216,7 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
                   display: "flex",
                   width: 56,
                   height: 56,
-                  marginRight: 14,
+                  marginRight: 12,
                   border: `2px solid ${INK}`,
                   alignItems: "center",
                   justifyContent: "center",
@@ -279,7 +282,7 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            marginTop: 61,
+            marginTop: 35,
           }}
         >
           <div style={{ display: "flex", alignItems: "center" }}>
@@ -288,7 +291,7 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
               style={{
                 fontFamily: DISPLAY,
                 fontSize: 56,
-                fontWeight: 600,
+                fontWeight: 700,
                 color: INK,
                 marginLeft: 17,
                 letterSpacing: -1.4,
@@ -303,13 +306,13 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              padding: "12px 30px",
+              padding: "14px 32px",
               border: `4px solid ${VERMILION}`,
               transform: "rotate(-9deg)",
               fontFamily: MONO,
-              fontSize: 30,
-              lineHeight: 1.2,
-              letterSpacing: 4.8,
+              fontSize: 28,
+              lineHeight: 1.25,
+              letterSpacing: 4.5,
               textTransform: "uppercase",
               color: VERMILION_DEEP,
             }}

@@ -54,7 +54,13 @@ const TRACK_ICONS: Record<string, LucideIcon> = {
 
 /** Caption size, and the value size under it. Used at every label/value pair. */
 const LABEL = "stamp-label text-[2.45cqw] text-ink-soft";
-const VALUE = "text-[3.2cqw] font-semibold leading-[1.3]";
+/** Bold, not semibold. Every value on the card is set heavy — it is what makes
+ *  the captions read as captions rather than as smaller text. */
+const VALUE = "text-[3.2cqw] font-bold leading-[1.3]";
+
+/** The two lines in the head rule are set LARGER than the captions below them:
+ *  they title the whole card, they aren't labelling a field. */
+const HEAD = "stamp-label text-[2.8cqw]";
 
 /** A hairline rule. Bleeds slightly WIDER than the type block, as in the
  *  reference — the rules are the card's ruling, not the paragraph's. */
@@ -104,19 +110,19 @@ export function InterviewerCard({
       />
 
       <article className="press relative bg-card">
-        <div className="px-[5.3cqw] pb-[5.4cqw] pt-[6.2cqw]">
+        <div className="px-[5.3cqw] pb-[5cqw] pt-[5cqw]">
           <header className="flex items-baseline justify-between gap-[3cqw]">
-            <p className="stamp-label text-[2.45cqw]">Interviewer card</p>
-            <p className="stamp-label text-[2.45cqw] text-ink-soft">
-              No. {data.no}
-            </p>
+            <p className={HEAD}>Interviewer card</p>
+            <p className={cn(HEAD, "text-ink-soft")}>No. {data.no}</p>
           </header>
 
-          <Rule className="-mx-[2.5cqw] mt-[4.2cqw]" />
+          <Rule className="-mx-[2.5cqw] mt-[3.2cqw]" />
 
-          {/* Centred against the plate: the right column is always shorter, and
-              hanging it off the top leaves the card bottom-heavy. */}
-          <div className="mt-[4cqw] flex items-center gap-[4.2cqw]">
+          {/* Bottom-aligned against the plate, not centred. The right column is
+              always shorter, and settling it on the photo's baseline is what
+              opens the breathing space above the name — centring splits that
+              gap in two and the name ends up crowding the head rule. */}
+          <div className="mt-[4cqw] flex items-end gap-[3.6cqw]">
             {/* Portrait, not square. Stored photos ARE squares — cover crops
                 the sides, which is the right loss for a head-and-shoulders shot
                 and the wrong one to avoid: a square plate is half the height of
@@ -137,8 +143,10 @@ export function InterviewerCard({
               )}
             </div>
 
-            <div className="min-w-0 flex-1">
-              <h2 className="display text-[7.05cqw] font-semibold leading-[0.95]">
+            {/* Held just off the photo's bottom edge, so the two blocks read as
+                sitting on the same line rather than one being flush. */}
+            <div className="min-w-0 flex-1 pb-[1.8cqw]">
+              <h2 className="display text-[7.05cqw] font-bold leading-[0.95]">
                 {data.name}
               </h2>
               <p className={cn("mt-[3cqw]", LABEL)}>{data.position}</p>
@@ -146,7 +154,9 @@ export function InterviewerCard({
 
               <Rule className="mt-[6cqw]" />
               <p className={cn("mt-[3cqw]", LABEL)}>Track</p>
-              <div className={cn("mt-[2.8cqw] flex items-center gap-[1.4cqw]", VALUE)}>
+              {/* The column is sized so a ~20-character track — the longest in
+                  content/tracks.ts — sits on one line beside the box. */}
+              <div className={cn("mt-[2.8cqw] flex items-center gap-[1.2cqw]", VALUE)}>
                 <span
                   aria-hidden
                   className="grid size-[5.6cqw] shrink-0 place-items-center border-[1.5px] border-ink/70"
@@ -173,19 +183,17 @@ export function InterviewerCard({
 
           <Rule className="-mx-[2.5cqw] mt-[6.2cqw]" />
 
-          <div className="mt-[6.1cqw] flex items-center justify-between gap-[3cqw]">
+          <div className="mt-[3.5cqw] flex items-center justify-between gap-[3cqw]">
             <div className="flex items-center gap-[1.7cqw]">
               <Logo className="size-[9cqw] shrink-0 text-ink" title="" />
-              <span className="display text-[5.6cqw] font-semibold">
-                MockClub
-              </span>
+              <span className="display text-[5.6cqw] font-bold">MockClub</span>
             </div>
 
             {/* The house stamp, same one the hero card carries. */}
-            <div className="stamp -rotate-[9deg] px-[3cqw] py-[1.2cqw] text-center leading-[1.2]">
-              <p className="text-[3cqw] font-bold">Real</p>
-              <p className="text-[3cqw] font-bold">Humans</p>
-              <p className="text-[3cqw] font-bold">Never AI</p>
+            <div className="stamp -rotate-[9deg] px-[3.2cqw] py-[1.4cqw] text-center leading-[1.25]">
+              <p className="text-[2.8cqw] font-bold">Real</p>
+              <p className="text-[2.8cqw] font-bold">Humans</p>
+              <p className="text-[2.8cqw] font-bold">Never AI</p>
             </div>
           </div>
         </div>
