@@ -17,7 +17,7 @@ import { stackLine, type CardData } from "@/server/profile/card";
 /** The card's own width. Every measurement below is the component's cqw × 10. */
 export const CARD_W = 1000;
 const W = CARD_W;
-/** Paper margin around the card, and the hard letterpress offset. */
+/** Paper margin around the card, and how far its shadow reaches. */
 export const MARGIN = 48;
 export const SHADOW = 12;
 /**
@@ -117,8 +117,14 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
         width: W,
         height: CARD_H,
         background: CARD,
-        border: `2px solid ${INK}`,
-        boxShadow: `${SHADOW}px ${SHADOW}px 0 0 ${INK}`,
+        border: `2px solid rgba(22, 18, 13, 0.7)`,
+        // Rounded, and overflow-hidden so the footer band takes the corner
+        // with it. A card is an object sitting ON the page, which is the one
+        // place this design is not letterpress — hence a soft shadow, not the
+        // hard offset used everywhere else.
+        borderRadius: 12,
+        overflow: "hidden",
+        boxShadow: `12px 16px 30px -7px rgba(22, 18, 13, 0.32)`,
       }}
     >
       {/* flexGrow absorbs any slack between the measured constant above and the

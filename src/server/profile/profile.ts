@@ -214,7 +214,7 @@ export type ProfileDoc = {
    */
   photo?: { key: string; updatedAt: Date };
   /**
-   * Opt-in to a public page at /interviewers/[id]. Absent means NO.
+   * Opt-in to a public page at /i/[handle]. Absent means NO.
    *
    * Deliberately not derived from "is an interviewer with a finished profile".
    * Everything else here is shown to one matched candidate; this puts a face, a
@@ -223,7 +223,7 @@ export type ProfileDoc = {
    */
   publicProfile?: boolean;
   /**
-   * The slug in /interviewers/<handle>. Lowercase, unique.
+   * The slug in /i/<handle>. Lowercase, unique.
    *
    * Absent until they publish — see server/profile/handle.ts for the rules and
    * for why a public URL must not be an ObjectId.

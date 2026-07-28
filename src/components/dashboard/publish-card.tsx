@@ -46,7 +46,7 @@ export function PublishCard({
   const [pending, start] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const url = handle ? `${origin}/interviewers/${handle}` : "";
+  const url = handle ? `${origin}/i/${handle}` : "";
 
   function toggle() {
     const next = !isPublic;
@@ -159,7 +159,7 @@ export function PublishCard({
             {/* The handle is the part they own, so it's the part that's set in
                 ink — the origin around it is chrome. */}
             <code className="min-w-0 flex-1 truncate border-[1.5px] border-ink/15 bg-paper px-3 py-2.5 text-sm text-ink-soft">
-              {origin.replace(/^https?:\/\//, "")}/interviewers/
+              {origin.replace(/^https?:\/\//, "")}/i/
               <span className="font-semibold text-ink">{handle}</span>
             </code>
             <button
@@ -203,7 +203,7 @@ export function PublishCard({
           </label>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <span className="text-sm text-ink-soft">
-              {origin.replace(/^https?:\/\//, "")}/interviewers/
+              {origin.replace(/^https?:\/\//, "")}/i/
             </span>
             <input
               id="handle"

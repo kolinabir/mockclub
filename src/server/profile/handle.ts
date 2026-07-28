@@ -1,7 +1,7 @@
 import "server-only";
 
 /**
- * The handle in /interviewers/<handle>.
+ * The handle in /i/<handle>.
  *
  * A public page is something people paste into a message, so it cannot be a
  * database id — an ObjectId tells the reader nothing, is impossible to say out
@@ -19,10 +19,10 @@ export const MAX_HANDLE = 30;
  * Names that must never become a handle.
  *
  * Two kinds. The first are words we may want as SIBLING routes under
- * /interviewers/ later — once someone owns /interviewers/search, adding a
- * search page means taking their URL away. The second is the ObjectId shape:
- * the route still resolves a raw id so old links keep working, so a handle that
- * looked like one would shadow a real member's page.
+ * /i/ later — once someone owns /i/search, shipping a search page means taking
+ * their URL away. The second is the ObjectId shape: the route still resolves a
+ * raw id so old links survive, so a handle of that shape would shadow a real
+ * member's page.
  */
 const RESERVED = new Set([
   "new",

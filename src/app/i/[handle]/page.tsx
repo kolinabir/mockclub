@@ -68,12 +68,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: `/interviewers/${person.handle}` },
+    alternates: { canonical: `/i/${person.handle}` },
     openGraph: {
       type: "profile",
       title,
       description,
-      url: `${SITE_URL}/interviewers/${person.handle}`,
+      url: `${SITE_URL}/i/${person.handle}`,
     },
   };
 }
@@ -83,7 +83,7 @@ export default async function InterviewerPage({ params }: Params) {
   const { person, canonical } = await resolve(handle);
 
   if (!person) notFound();
-  if (!canonical) permanentRedirect(`/interviewers/${person.handle}`);
+  if (!canonical) permanentRedirect(`/i/${person.handle}`);
 
   return (
     <>

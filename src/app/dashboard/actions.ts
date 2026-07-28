@@ -190,7 +190,7 @@ export async function setProfileVisibilityAction(isPublic: boolean) {
 
   revalidatePath("/dashboard/card");
   revalidatePath("/dashboard/profile");
-  if (result.handle) revalidatePath(`/interviewers/${result.handle}`);
+  if (result.handle) revalidatePath(`/i/${result.handle}`);
   return { ok: true as const, isPublic: result.isPublic, handle: result.handle };
 }
 
@@ -210,8 +210,8 @@ export async function setHandleAction(formData: FormData) {
   if (!result.ok) return { ok: false as const, error: result.error };
 
   revalidatePath("/dashboard/card");
-  if (previous) revalidatePath(`/interviewers/${previous}`);
-  revalidatePath(`/interviewers/${result.handle}`);
+  if (previous) revalidatePath(`/i/${previous}`);
+  revalidatePath(`/i/${result.handle}`);
   return { ok: true as const, handle: result.handle };
 }
 

@@ -98,18 +98,36 @@ export function InterviewerCard({
     // @container is on the WRAPPER, not the article, so the cards stacked
     // behind can be measured in the same units.
     <div className={cn("@container relative isolate", className)}>
-      {/* Hairline only — the hard letterpress shadow belongs to the card in
-          front, and three of them stacked read as bars, not paper. */}
+      {/* The deck. Each sheet is offset right and down, and casts a soft shadow
+          onto the one behind it — this is the one place in the design that
+          isn't letterpress, because the card is a physical object sitting ON
+          the page rather than printed into it. `.press` is deliberately not
+          used: its hard offset reads as three black bars once stacked. */}
       <div
         aria-hidden
-        className="absolute -bottom-[1.4cqw] -end-[3.8cqw] start-[3.8cqw] top-[1.4cqw] border-[1.5px] border-ink/20 bg-card"
+        className={cn(
+          "absolute -bottom-[1.4cqw] -end-[3.8cqw] start-[3.8cqw] top-[1.4cqw]",
+          "rounded-[1.2cqw] border-[1.5px] border-ink/20 bg-card",
+          "shadow-[1.6cqw_2cqw_3.6cqw_-0.8cqw_rgba(22,18,13,0.34)]",
+        )}
       />
       <div
         aria-hidden
-        className="absolute -bottom-[0.7cqw] -end-[1.9cqw] start-[1.9cqw] top-[0.7cqw] border-[1.5px] border-ink/25 bg-card"
+        className={cn(
+          "absolute -bottom-[0.7cqw] -end-[1.9cqw] start-[1.9cqw] top-[0.7cqw]",
+          "rounded-[1.2cqw] border-[1.5px] border-ink/25 bg-card",
+          "shadow-[1.2cqw_1.5cqw_2.6cqw_-0.6cqw_rgba(22,18,13,0.3)]",
+        )}
       />
 
-      <article className="press relative bg-card">
+      <article
+        className={cn(
+          // overflow-hidden so the footer band takes the corner with it —
+          // without it the black bar squares off the two bottom corners.
+          "relative overflow-hidden rounded-[1.2cqw] border-[1.5px] border-ink/70 bg-card",
+          "shadow-[1.2cqw_1.6cqw_3cqw_-0.7cqw_rgba(22,18,13,0.32)]",
+        )}
+      >
         <div className="px-[5.3cqw] pb-[5cqw] pt-[5cqw]">
           <header className="flex items-baseline justify-between gap-[3cqw]">
             <p className={HEAD}>Interviewer card</p>

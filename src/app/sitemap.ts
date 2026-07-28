@@ -41,7 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     },
     ...interviewers.map((i) => ({
-      url: `${SITE_URL}/interviewers/${i.handle}`,
+      url: `${SITE_URL}/i/${i.handle}`,
       lastModified: i.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.5,
