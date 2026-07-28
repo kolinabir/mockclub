@@ -179,3 +179,24 @@ export function isValidTimeZone(tz: string): boolean {
 export const MINUTE_MS = 60_000;
 export const addMinutes = (d: Date, n: number) =>
   new Date(d.getTime() + n * MINUTE_MS);
+
+/**
+ * "Asia / Dhaka (GMT+6)" — a zone id, written for a human.
+ *
+ * DERIVED, never stored. AGENTS.md forbids persisting an offset because it
+ * carries no DST rules; computing one at render time from the IANA id is the
+ * safe direction of that arrow, and it's the reading people actually recognise
+ * on a card. Uses U+2212 for negative offsets, matching content/member-cards.
+ */
+export function zoneLabel(timeZone: string, at: Date = new Date()): string {
+  const minutes = Math.round(offsetAt(at.getTime(), timeZone) / MINUTE_MS);
+  const sign = minutes < 0 ? "−" : "+";
+  const hours = Math.floor(Math.abs(minutes) / 60);
+  const rest = Math.abs(minutes) % 60;
+  const offset = `GMT${sign}${hours}${rest ? `:${String(rest).padStart(2, "0")}` : ""}`;
+
+  // "Asia/Ho_Chi_Minh" -> "Asia / Ho Chi Minh". The id stays the stored value;
+  // this is only how it is set in type.
+  const place = timeZone.replace(/_/g, " ").split("/").join(" / ");
+  return `${place} (${offset})`;
+}

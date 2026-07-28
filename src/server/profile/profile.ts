@@ -207,6 +207,12 @@ export type ProfileDoc = {
   skills?: string[];
   yearsOfExperience?: number;
   currentRole?: { company: string; role: string; current: boolean };
+  /**
+   * Uploaded photo, as an object KEY in R2 — never a URL. See server/profile/
+   * photo.ts for why, and lib/photo.ts for turning one into something an
+   * <img> can use. Interviewers only.
+   */
+  photo?: { key: string; updatedAt: Date };
 };
 
 const TRACK_SLUGS = new Set([...TRACKS.map((t) => t.slug), OTHER_TRACK_SLUG]);
@@ -448,6 +454,11 @@ export function profileChecklist(
       key: "track",
       label: "Track and level",
       done: Boolean(profile?.trackSlug && profile?.level),
+    },
+    {
+      key: "photo",
+      label: "A professional photo",
+      done: Boolean(profile?.photo?.key),
     },
     ...shared,
     {
