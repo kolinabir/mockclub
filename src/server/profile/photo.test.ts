@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  isRenderablePhoto,
   isServablePhotoKey,
   photoKey,
   sniffImageType,
@@ -143,5 +144,34 @@ describe("isServablePhotoKey", () => {
       ),
       false,
     );
+  });
+});
+
+describe("isRenderablePhoto", () => {
+  /**
+   * The narrow rule that keeps the card download and the share image alive.
+   * Both are drawn by a PNG renderer that decodes JPEG and PNG and NOTHING
+   * else — a stored WebP served fine through the proxy and then took both
+   * routes down the first time a member with a photo asked for one.
+   */
+  it("accepts what the PNG renderer can decode", () => {
+    assert.equal(isRenderablePhoto("image/jpeg"), true);
+    assert.equal(isRenderablePhoto("image/png"), true);
+  });
+
+  it("rejects WebP, however well the browser handles it", () => {
+    assert.equal(isRenderablePhoto("image/webp"), false);
+  });
+
+  it("ignores charset parameters and casing on the stored type", () => {
+    assert.equal(isRenderablePhoto("IMAGE/JPEG"), true);
+    assert.equal(isRenderablePhoto("image/png; charset=binary"), true);
+    assert.equal(isRenderablePhoto(" image/jpeg "), true);
+  });
+
+  it("rejects anything else", () => {
+    for (const t of ["image/svg+xml", "text/html", "application/octet-stream", ""]) {
+      assert.equal(isRenderablePhoto(t), false, t);
+    }
   });
 });

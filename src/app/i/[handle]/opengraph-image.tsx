@@ -1,14 +1,9 @@
 import { ImageResponse } from "next/og";
 
-import {
-  CARD_H,
-  CARD_W,
-  CardPrint,
-  PAPER,
-  SHADOW,
-} from "@/components/card-print";
+import { CARD_H, CardPrint, PAPER, SHADOW } from "@/components/card-print";
 import { loadGoogleFont } from "@/server/fonts/google";
 import { getPublicInterviewerByHandle } from "@/server/profile/public";
+import { isRenderablePhoto } from "@/server/profile/photo";
 import { getObject } from "@/server/storage/r2";
 
 /**
@@ -35,13 +30,20 @@ export const dynamic = "force-dynamic";
    cuts someone's head off is worse than one with margins. */
 export const size = { width: 1200, height: 630 };
 
-const SCALE = (size.height - 48) / (CARD_H + SHADOW);
+/** Fits the portrait card inside the landscape canvas with room to breathe. */
+const SCALE = (size.height - 56) / (CARD_H + SHADOW);
 
 async function photoDataUri(key: string | null): Promise<string | null> {
   if (!key) return null;
 
   const object = await getObject(key);
   if (!object) return null;
+
+  // Rows written before uploads were restricted to JPEG/PNG can still hold a
+  // WebP, and handing one to the renderer kills the whole response rather than
+  // just the image. A card with an empty plate beats no card at all — the fix
+  // for those members is to re-upload, which now stores a renderable format.
+  if (!isRenderablePhoto(object.contentType)) return null;
 
   const bytes = Buffer.from(await new Response(object.body).arrayBuffer());
   return `data:${object.contentType};base64,${bytes.toString("base64")}`;
@@ -89,26 +91,10 @@ export default async function Image({
           justifyContent: "center",
         }}
       >
-        {/* Scaled from the top-left, so the wrapper is sized to the RESULT —
-            a transform doesn't change layout, and without this the card would
-            reserve its full 1000×1467 and push itself off the canvas. */}
-        <div
-          style={{
-            display: "flex",
-            width: (CARD_W + SHADOW) * SCALE,
-            height: (CARD_H + SHADOW) * SCALE,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              transform: `scale(${SCALE})`,
-              transformOrigin: "top left",
-            }}
-          >
-            <CardPrint data={person.card} photo={photo} />
-          </div>
-        </div>
+        {/* Scaled by MULTIPLYING the card's measurements, not with a CSS
+            transform — the renderer lays a transformed subtree out correctly
+            and then drops its SVG, which cost this image its logo. */}
+        <CardPrint data={person.card} photo={photo} scale={SCALE} />
       </div>
     ),
     { ...size, ...(fonts.length ? { fonts } : {}) },

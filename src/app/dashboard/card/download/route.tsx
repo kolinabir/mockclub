@@ -12,6 +12,7 @@ import { getCurrentUser } from "@/lib/session";
 import { loadGoogleFont } from "@/server/fonts/google";
 import { buildCard } from "@/server/profile/card";
 import { getProfile } from "@/server/profile/profile";
+import { isRenderablePhoto } from "@/server/profile/photo";
 import { getObject } from "@/server/storage/r2";
 
 /**
@@ -45,6 +46,12 @@ async function photoDataUri(key: string | null): Promise<string | null> {
 
   const object = await getObject(key);
   if (!object) return null;
+
+  // Rows written before uploads were restricted to JPEG/PNG can still hold a
+  // WebP, and handing one to the renderer kills the whole response rather than
+  // just the image. A card with an empty plate beats no card at all — the fix
+  // for those members is to re-upload, which now stores a renderable format.
+  if (!isRenderablePhoto(object.contentType)) return null;
 
   const bytes = Buffer.from(await new Response(object.body).arrayBuffer());
   return `data:${object.contentType};base64,${bytes.toString("base64")}`;

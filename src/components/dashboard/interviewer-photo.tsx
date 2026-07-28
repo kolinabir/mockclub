@@ -61,12 +61,15 @@ async function toSquare(file: File): Promise<File> {
     const encode = (type: string) =>
       new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, 0.9));
 
-    // JPEG is the fallback for any engine that won't encode WebP; both are on
-    // the server's accepted list, so either one stores fine.
-    const blob = (await encode("image/webp")) ?? (await encode("image/jpeg"));
+    // JPEG, not WebP — even though WebP is smaller and every browser here can
+    // make one. The card download and the share image are rendered by a PNG
+    // renderer that decodes JPEG and PNG and nothing else, so a WebP upload
+    // takes both of them down. The server enforces the same rule; this just
+    // means it never has to.
+    const blob = (await encode("image/jpeg")) ?? (await encode("image/png"));
     if (!blob) throw new Error("encode failed");
 
-    const ext = blob.type === "image/webp" ? "webp" : "jpg";
+    const ext = blob.type === "image/png" ? "png" : "jpg";
     return new File([blob], `photo.${ext}`, { type: blob.type });
   } finally {
     bitmap.close();
@@ -211,7 +214,7 @@ export function InterviewerPhoto({
               <input
                 ref={inputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/*"
+                accept="image/jpeg,image/png,image/*"
                 className="sr-only"
                 onChange={(e) => {
                   choose(e.target.files?.[0]);
@@ -243,7 +246,7 @@ export function InterviewerPhoto({
             </div>
 
             <p className="mt-3 text-xs text-ink-soft">
-              JPEG, PNG or WebP. Cropped to a square and resized here in your
+              JPEG or PNG. Cropped to a square and resized here in your
               browser, so location data in the original is never uploaded.
             </p>
 

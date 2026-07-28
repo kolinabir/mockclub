@@ -37,6 +37,17 @@ const PHOTO_H = Math.round(PHOTO_W * 1.5);
 const COL_GAP = 36;
 const COL_W = CONTENT - PHOTO_W - COL_GAP;
 
+/**
+ * Every length below goes through this.
+ *
+ * The share image needs the same card at 40% — and the obvious way to get it,
+ * `transform: scale()`, is not something the renderer honours: the layout came
+ * out right and the logo SVG silently vanished. So the card is scaled by
+ * MULTIPLYING its measurements instead, which is the only form the renderer
+ * treats as real geometry.
+ */
+type U = (n: number) => number;
+
 /* Resolved from the live stylesheet — the renderer has no CSS variables, and
    oklch() is not in its subset. Light theme: a downloaded card is a printed
    object, not a screen that follows your system theme. */
@@ -54,22 +65,23 @@ const BODY = "Archivo";
 const MONO = "FragmentMono";
 
 /** The caption style used at every label on the card. */
-const label = (size = 24.5) =>
+const label = (u: U, size = 24.5) =>
   ({
     fontFamily: MONO,
-    fontSize: size,
-    letterSpacing: size * 0.22,
+    fontSize: u(size),
+    letterSpacing: u(size * 0.22),
     textTransform: "uppercase",
     color: INK_SOFT,
   }) as const;
 
-const value = {
-  fontFamily: BODY,
-  fontSize: 32,
-  fontWeight: 700,
-  color: INK,
-  lineHeight: 1.3,
-} as const;
+const valueStyle = (u: U) =>
+  ({
+    fontFamily: BODY,
+    fontSize: u(32),
+    fontWeight: 700,
+    color: INK,
+    lineHeight: 1.3,
+  }) as const;
 
 function Rule({ width, top }: { width: number; top: number }) {
   return (
@@ -108,23 +120,34 @@ function Mark({ size }: { size: number }) {
   );
 }
 
-export function CardPrint({ data, photo }: { data: CardData; photo: string | null }) {
+export function CardPrint({
+  data,
+  photo,
+  scale = 1,
+}: {
+  data: CardData;
+  photo: string | null;
+  /** 1 is the natural 1000px card. The share image renders it smaller. */
+  scale?: number;
+}) {
+  const u: U = (n) => n * scale;
+
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        width: W,
-        height: CARD_H,
+        width: u(W),
+        height: u(CARD_H),
         background: CARD,
-        border: `2px solid rgba(22, 18, 13, 0.7)`,
+        border: `${u(2)}px solid rgba(22, 18, 13, 0.7)`,
         // Rounded, and overflow-hidden so the footer band takes the corner
         // with it. A card is an object sitting ON the page, which is the one
         // place this design is not letterpress — hence a soft shadow, not the
         // hard offset used everywhere else.
-        borderRadius: 12,
+        borderRadius: u(12),
         overflow: "hidden",
-        boxShadow: `12px 16px 30px -7px rgba(22, 18, 13, 0.32)`,
+        boxShadow: `${u(12)}px ${u(16)}px ${u(30)}px ${u(-7)}px rgba(22, 18, 13, 0.32)`,
       }}
     >
       {/* flexGrow absorbs any slack between the measured constant above and the
@@ -135,7 +158,7 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
           display: "flex",
           flexDirection: "column",
           flexGrow: 1,
-          padding: `50px ${PAD}px 50px ${PAD}px`,
+          padding: `${u(50)}px ${u(PAD)}px ${u(50)}px ${u(PAD)}px`,
         }}
       >
         <div
@@ -145,27 +168,27 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
             alignItems: "baseline",
           }}
         >
-          <div style={{ ...label(28), color: INK }}>Interviewer card</div>
-          <div style={label(28)}>{`No. ${data.no}`}</div>
+          <div style={{ ...label(u, 28), color: INK }}>Interviewer card</div>
+          <div style={label(u, 28)}>{`No. ${data.no}`}</div>
         </div>
 
-        <div style={{ display: "flex", marginLeft: -BLEED }}>
-          <Rule width={CONTENT + BLEED * 2} top={32} />
+        <div style={{ display: "flex", marginLeft: u(-BLEED) }}>
+          <Rule width={u(CONTENT + BLEED * 2)} top={u(32)} />
         </div>
 
         <div
           style={{
             display: "flex",
             alignItems: "flex-end",
-            marginTop: 40,
+            marginTop: u(40),
           }}
         >
           <div
             style={{
               display: "flex",
-              width: PHOTO_W,
-              height: PHOTO_H,
-              borderRadius: 30,
+              width: u(PHOTO_W),
+              height: u(PHOTO_H),
+              borderRadius: u(30),
               background: LIME,
               overflow: "hidden",
             }}
@@ -175,9 +198,17 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
               <img
                 src={photo}
                 alt=""
-                width={PHOTO_W}
-                height={PHOTO_H}
-                style={{ width: PHOTO_W, height: PHOTO_H, objectFit: "cover" }}
+                width={u(PHOTO_W)}
+                height={u(PHOTO_H)}
+                style={{
+                  width: u(PHOTO_W),
+                  height: u(PHOTO_H),
+                  objectFit: "cover",
+                  // The renderer does NOT clip a child to its parent's radius,
+                  // so the photo squares off the plate unless it carries the
+                  // same corner itself.
+                  borderRadius: u(30),
+                }}
               />
             ) : null}
           </div>
@@ -188,46 +219,46 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
             style={{
               display: "flex",
               flexDirection: "column",
-              width: COL_W,
-              marginLeft: COL_GAP,
-              paddingBottom: 18,
+              width: u(COL_W),
+              marginLeft: u(COL_GAP),
+              paddingBottom: u(18),
             }}
           >
             <div
               style={{
                 fontFamily: DISPLAY,
-                fontSize: 70,
+                fontSize: u(70),
                 fontWeight: 700,
                 color: INK,
                 lineHeight: 0.95,
-                letterSpacing: -1.8,
+                letterSpacing: u(-1.8),
               }}
             >
               {data.name}
             </div>
-            <div style={{ ...label(), marginTop: 30 }}>{data.position}</div>
-            <div style={{ ...value, marginTop: 22 }}>{data.company}</div>
+            <div style={{ ...label(u), marginTop: u(30) }}>{data.position}</div>
+            <div style={{ ...valueStyle(u), marginTop: u(22) }}>{data.company}</div>
 
-            <Rule width={COL_W} top={60} />
-            <div style={{ ...label(), marginTop: 30 }}>Track</div>
+            <Rule width={u(COL_W)} top={u(60)} />
+            <div style={{ ...label(u), marginTop: u(30) }}>Track</div>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                marginTop: 28,
+                marginTop: u(28),
               }}
             >
               <div
                 style={{
                   display: "flex",
-                  width: 56,
-                  height: 56,
-                  marginRight: 12,
-                  border: `2px solid ${INK}`,
+                  width: u(56),
+                  height: u(56),
+                  marginRight: u(12),
+                  border: `${u(2)}px solid ${INK}`,
                   alignItems: "center",
                   justifyContent: "center",
                   fontFamily: MONO,
-                  fontSize: 24,
+                  fontSize: u(24),
                   color: INK,
                 }}
               >
@@ -236,34 +267,34 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
                     and a box that fails to draw is worse than a neutral one. */}
                 {"</>"}
               </div>
-              <div style={value}>{data.track}</div>
+              <div style={valueStyle(u)}>{data.track}</div>
             </div>
 
-            <Rule width={COL_W} top={48} />
-            <div style={{ ...label(), marginTop: 33 }}>Tech stack</div>
+            <Rule width={u(COL_W)} top={u(48)} />
+            <div style={{ ...label(u), marginTop: u(33) }}>Tech stack</div>
             {/* Clamped for the same reason as the card: the column must not
                 outgrow the plate beside it. */}
-            <div style={{ ...value, marginTop: 28 }}>
+            <div style={{ ...valueStyle(u), marginTop: u(28) }}>
               {stackLine(data.skills)}
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", marginLeft: -BLEED }}>
-          <Rule width={CONTENT + BLEED * 2} top={37} />
+        <div style={{ display: "flex", marginLeft: u(-BLEED) }}>
+          <Rule width={u(CONTENT + BLEED * 2)} top={u(37)} />
         </div>
 
-        <div style={{ display: "flex", marginTop: 57 }}>
+        <div style={{ display: "flex", marginTop: u(57) }}>
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              width: (CONTENT - 40) / 2,
-              marginRight: 40,
+              width: u((CONTENT - 40) / 2),
+              marginRight: u(40),
             }}
           >
-            <div style={label()}>Languages</div>
-            <div style={{ ...value, marginTop: 29 }}>
+            <div style={label(u)}>Languages</div>
+            <div style={{ ...valueStyle(u), marginTop: u(29) }}>
               {data.languages.join(" + ")}
             </div>
           </div>
@@ -271,18 +302,18 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
             style={{
               display: "flex",
               flexDirection: "column",
-              width: (CONTENT - 40) / 2,
+              width: u((CONTENT - 40) / 2),
             }}
           >
-            <div style={label()}>Timezone</div>
-            <div style={{ ...value, marginTop: 29 }}>
+            <div style={label(u)}>Timezone</div>
+            <div style={{ ...valueStyle(u), marginTop: u(29) }}>
               {zoneLabel(data.timeZone)}
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", marginLeft: -BLEED }}>
-          <Rule width={CONTENT + BLEED * 2} top={62} />
+        <div style={{ display: "flex", marginLeft: u(-BLEED) }}>
+          <Rule width={u(CONTENT + BLEED * 2)} top={u(62)} />
         </div>
 
         <div
@@ -290,19 +321,19 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            marginTop: 35,
+            marginTop: u(35),
           }}
         >
           <div style={{ display: "flex", alignItems: "center" }}>
-            <Mark size={90} />
+            <Mark size={u(90)} />
             <div
               style={{
                 fontFamily: DISPLAY,
-                fontSize: 56,
+                fontSize: u(56),
                 fontWeight: 700,
                 color: INK,
-                marginLeft: 17,
-                letterSpacing: -1.4,
+                marginLeft: u(17),
+                letterSpacing: u(-1.4),
               }}
             >
               MockClub
@@ -314,13 +345,13 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              padding: "14px 32px",
-              border: `4px solid ${VERMILION}`,
+              padding: `${u(14)}px ${u(32)}px`,
+              border: `${u(4)}px solid ${VERMILION}`,
               transform: "rotate(-9deg)",
               fontFamily: MONO,
-              fontSize: 28,
+              fontSize: u(28),
               lineHeight: 1.25,
-              letterSpacing: 4.5,
+              letterSpacing: u(4.5),
               textTransform: "uppercase",
               color: VERMILION_DEEP,
             }}
@@ -337,10 +368,10 @@ export function CardPrint({ data, photo }: { data: CardData; photo: string | nul
           display: "flex",
           justifyContent: "center",
           background: INK,
-          padding: "19px 30px",
+          padding: `${u(19)}px ${u(30)}px`,
         }}
       >
-        <div style={{ ...label(21), color: "rgba(245, 240, 230, 0.7)" }}>
+        <div style={{ ...label(u, 21), color: "rgba(245, 240, 230, 0.7)" }}>
           Valid indefinitely · Non-transferable · Priceless
         </div>
       </div>

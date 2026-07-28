@@ -49,6 +49,27 @@ export const PHOTO_CACHE_CONTROL = "public, max-age=3600";
 type ImageKind = { mime: string; ext: string };
 
 /**
+ * Formats a stored photo is allowed to be.
+ *
+ * Narrower than what `sniffImageType` can RECOGNISE, and deliberately so. A
+ * photo has two consumers: the browser, which renders anything; and the PNG
+ * renderer behind the card download and the share image, which decodes JPEG
+ * and PNG and NOTHING else. A WebP passes every check here, serves perfectly
+ * through the proxy, and then takes down both PNG routes the first time
+ * someone with a photo asks for one — which is exactly how it shipped.
+ *
+ * So the rule is the INTERSECTION of what every consumer can read, enforced at
+ * the one boundary where bytes enter. `isRenderablePhoto` is the same rule
+ * spelled for the read side, because rows predating this check still exist.
+ */
+const STORABLE_MIMES = new Set(["image/jpeg", "image/png"]);
+
+/** Can the PNG renderer decode this stored object? */
+export function isRenderablePhoto(contentType: string): boolean {
+  return STORABLE_MIMES.has(contentType.split(";")[0].trim().toLowerCase());
+}
+
+/**
  * What the bytes ACTUALLY are.
  *
  * The `type` on an uploaded File is client-supplied and trivially forged, and
@@ -150,9 +171,14 @@ export async function saveInterviewerPhoto(
 
   const kind = sniffImageType(bytes);
   if (!kind)
+    return { ok: false, error: "That doesn't look like a JPEG or PNG image." };
+
+  // Recognised, but not storable — see STORABLE_MIMES. The browser encoder
+  // sends JPEG, so this is the path for a request that skipped it.
+  if (!isRenderablePhoto(kind.mime))
     return {
       ok: false,
-      error: "That doesn't look like a JPEG, PNG or WebP image.",
+      error: "Please upload a JPEG or PNG. WebP can't be printed onto a card.",
     };
 
   // The session id is the only thing interpolated into the key; keep it to the
