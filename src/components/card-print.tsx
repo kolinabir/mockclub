@@ -1,5 +1,5 @@
 import { zoneLabel } from "@/lib/time";
-import { stackLine, type CardData } from "@/server/profile/card";
+import { languagesLine, stackLine, type CardData } from "@/server/profile/card";
 
 /**
  * The card, laid out for the PNG renderer.
@@ -295,7 +295,7 @@ export function CardPrint({
           >
             <div style={label(u)}>Languages</div>
             <div style={{ ...valueStyle(u), marginTop: u(29) }}>
-              {data.languages.join(" + ")}
+              {languagesLine(data.languages)}
             </div>
           </div>
           <div

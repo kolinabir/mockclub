@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import {
   buildCard,
   cardNumber,
+  LANGS_MAX_CHARS,
+  languagesLine,
   MAX_CARD_SKILLS,
   STACK_MAX_CHARS,
   stackLine,
@@ -150,6 +152,42 @@ describe("buildCard data", () => {
     const { data } = buildCard(interviewer, without({ timeZone: "" }));
     assert.equal(data.timeZone, "UTC");
     assert.equal(data.photoKey !== null, true);
+  });
+});
+
+describe("languagesLine", () => {
+  it("leaves a short list alone", () => {
+    assert.equal(languagesLine(["English", "বাংলা"]), "English + বাংলা");
+  });
+
+  it("bounds a long list and counts the rest — whole languages only", () => {
+    const langs = [
+      "English",
+      "Português",
+      "العربية",
+      "Français",
+      "Español",
+      "বাংলা",
+      "中文",
+    ];
+    const line = languagesLine(langs);
+
+    assert.ok(line.length <= LANGS_MAX_CHARS, line);
+    assert.match(line, /\+\d+$/);
+
+    // Everything shown is an UNCUT language from the front of the list.
+    const shown = line.replace(/ \+\d+$/, "").split(" + ");
+    assert.deepEqual(shown, langs.slice(0, shown.length));
+
+    // The count covers exactly what was dropped.
+    const counted = Number(line.match(/\+(\d+)$/)?.[1]);
+    assert.equal(shown.length + counted, langs.length);
+  });
+
+  it("never drops below one visible language", () => {
+    const line = languagesLine(["A".repeat(LANGS_MAX_CHARS + 5), "English"]);
+    assert.ok(line.startsWith("A"), line);
+    assert.ok(line.endsWith("+1"), line);
   });
 });
 

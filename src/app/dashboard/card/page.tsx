@@ -113,7 +113,7 @@ export default async function CardPage() {
   const visibility = visibilityOf(user, profile);
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-5xl">
       <p className="stamp-label text-vermilion-deep">Card</p>
       <h1 className="display mt-3 text-[clamp(1.75rem,4vw,2.5rem)] font-semibold">
         {ready ? "This is you, on paper." : "One card, once it's earned."}
@@ -126,27 +126,54 @@ export default async function CardPage() {
 
       <div className="mt-10 sm:mt-12">
         {ready ? (
-          <div className="mx-auto w-full max-w-lg">
-            <InterviewerCard data={data} />
+          // The card is the object; everything you DO with it lives in a rail
+          // beside it, above the fold. Single column again below lg.
+          //
+          // items-CENTER, deliberately: the card is a fixed-proportion object
+          // ~1.4× as tall as its width, so the rail can never match its
+          // height. Pinned to the top the leftover reads as a hole under the
+          // rail; stretched, as an empty box. Centred, the whitespace splits
+          // evenly above and below and the composition reads as intended.
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center">
+            <div className="mx-auto w-full max-w-lg lg:mx-0">
+              <InterviewerCard data={data} />
+            </div>
 
-            {/* A plain link, not a button: the response is a file, so letting
-                the browser handle the navigation is both simpler and what makes
-                "save as" work the way people expect. */}
-            <a
-              href="/dashboard/card/download"
-              download
-              className="press press-hover mt-10 inline-flex min-h-11 items-center gap-2 bg-paper px-5 text-sm font-medium transition-all"
-            >
-              <Download className="size-4" strokeWidth={2.5} />
-              Download as PNG
-            </a>
+            <aside className="mx-auto flex w-full max-w-lg flex-col gap-5 lg:mx-0 lg:max-w-none">
+              <section className="press bg-card p-6 sm:p-7">
+                <p className="stamp-label text-ink-soft">Keep a copy</p>
+                {/* A plain link, not a button: the response is a file, so
+                    letting the browser handle the navigation is both simpler
+                    and what makes "save as" work the way people expect. */}
+                <a
+                  href="/dashboard/card/download"
+                  download
+                  className="press press-hover mt-4 inline-flex min-h-11 items-center gap-2 bg-paper px-5 text-sm font-medium transition-all"
+                >
+                  <Download className="size-4" strokeWidth={2.5} />
+                  Download as PNG
+                </a>
+                <p className="mt-4 text-sm leading-relaxed text-ink-soft">
+                  Every line comes from your profile — a card is never edited
+                  on its own.{" "}
+                  <Link
+                    href="/dashboard/profile"
+                    className="font-medium text-vermilion-deep underline-offset-4 hover:underline"
+                  >
+                    Edit your profile
+                  </Link>{" "}
+                  and it reprints itself.
+                </p>
+              </section>
 
-            <PublishCard
-              isPublic={visibility.isPublic}
-              canPublish={visibility.canPublish}
-              handle={visibility.handle}
-              origin={SITE_URL}
-            />
+              <PublishCard
+                isPublic={visibility.isPublic}
+                canPublish={visibility.canPublish}
+                handle={visibility.handle}
+                origin={SITE_URL}
+                className="mt-0"
+              />
+            </aside>
           </div>
         ) : (
           // Both children occupy the same grid cell, so the container is as

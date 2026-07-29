@@ -18,7 +18,7 @@ import { Logo } from "@/components/logo";
 import { photoUrl } from "@/lib/photo";
 import { zoneLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { stackLine, type CardData } from "@/server/profile/card";
+import { languagesLine, stackLine, type CardData } from "@/server/profile/card";
 
 /**
  * The printed card.
@@ -199,7 +199,7 @@ export function InterviewerCard({
           <Rule className="-mx-[2.5cqw] mt-[3.7cqw]" />
 
           <div className="mt-[5.7cqw] grid grid-cols-2 gap-[4cqw]">
-            <Field label="Languages">{data.languages.join(" + ")}</Field>
+            <Field label="Languages">{languagesLine(data.languages)}</Field>
             <Field label="Timezone">{zoneLabel(data.timeZone)}</Field>
           </div>
 

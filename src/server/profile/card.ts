@@ -117,6 +117,33 @@ export function stackLine(skills: string[]): string {
   return `${kept.replace(/[,\s]+$/, "")}…`;
 }
 
+/**
+ * The languages LINE, budgeted like the stack line and for the same reason:
+ * the card is drawn twice (browser + PNG renderer) and both must show the
+ * same words. Seven languages joined with "+" wrapped to three ragged lines
+ * of mixed scripts while every other field held one — a card is a printed
+ * object, so the field trims to what fits and counts the rest.
+ *
+ * Whole languages only, never a sliced word: "+3" reads as printed shorthand,
+ * "Portugu…" reads as a bug. The full list stays on the profile and the
+ * public page.
+ */
+export const LANGS_MAX_CHARS = 26;
+
+export function languagesLine(languages: string[]): string {
+  const all = languages.join(" + ");
+  if (all.length <= LANGS_MAX_CHARS) return all;
+
+  for (let shown = languages.length - 1; shown >= 1; shown--) {
+    const line = `${languages.slice(0, shown).join(" + ")} +${
+      languages.length - shown
+    }`;
+    if (line.length <= LANGS_MAX_CHARS) return line;
+  }
+  // One language longer than the whole budget — show it and let CSS wrap.
+  return `${languages[0]} +${languages.length - 1}`;
+}
+
 function trackName(profile: ProfileDoc | null): string | undefined {
   if (!profile?.trackSlug) return undefined;
   if (profile.trackSlug === OTHER_TRACK_SLUG)

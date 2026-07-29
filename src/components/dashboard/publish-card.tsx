@@ -29,6 +29,7 @@ export function PublishCard({
   canPublish,
   handle: initialHandle,
   origin,
+  className,
 }: {
   isPublic: boolean;
   canPublish: boolean;
@@ -36,6 +37,8 @@ export function PublishCard({
   handle?: string;
   /** Absolute site origin, so a copied link works when pasted anywhere. */
   origin: string;
+  /** Spacing is the page's call — the card-page rail sets its own rhythm. */
+  className?: string;
 }) {
   const [isPublic, setIsPublic] = useState(initial);
   const [handle, setHandle] = useState(initialHandle);
@@ -105,7 +108,7 @@ export function PublishCard({
   }
 
   return (
-    <section className="press mt-10 bg-card p-6 sm:p-7">
+    <section className={cn("press bg-card p-6 sm:p-7", className ?? "mt-10")}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="stamp-label flex items-center gap-2 text-ink-soft">
