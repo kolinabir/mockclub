@@ -26,6 +26,11 @@ const OUTPUT_SIZE = 512;
  *  component is not a security boundary. */
 const MAX_BYTES = 2 * 1024 * 1024;
 
+/** The file the member PICKS, before squaring — the product rule (5 MB), not
+ *  a technical one. The re-encoded upload is far smaller anyway; this exists
+ *  so "my 40 MB scan won't upload" is an instant message, not a slow failure. */
+const MAX_PICK_BYTES = 5 * 1024 * 1024;
+
 /**
  * Square, shrink and re-encode in the browser.
  *
@@ -106,10 +111,8 @@ export function InterviewerPhoto({
       setError("That isn't an image file.");
       return;
     }
-    // The original, before squaring. A 50 MP photo is fine — it shrinks — but
-    // decoding something absurd shouldn't lock up the tab.
-    if (file.size > 25 * 1024 * 1024) {
-      setError("That photo is very large. Please pick one under 25 MB.");
+    if (file.size > MAX_PICK_BYTES) {
+      setError("That photo is too large. Please pick one under 5 MB.");
       return;
     }
 
@@ -246,8 +249,8 @@ export function InterviewerPhoto({
             </div>
 
             <p className="mt-3 text-xs text-ink-soft">
-              JPEG or PNG. Cropped to a square and resized here in your
-              browser, so location data in the original is never uploaded.
+              JPEG or PNG, up to 5 MB. Cropped to a square and resized here in
+              your browser, so location data in the original is never uploaded.
             </p>
 
             {error && (
