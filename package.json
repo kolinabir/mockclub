@@ -16,6 +16,7 @@
     "test": "node --import ./scripts/ts-alias-hook.mjs --test 'src/**/*.test.ts'"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1096.0",
     "@next/third-parties": "^16.2.11",
     "better-auth": "1.6.24",
     "class-variance-authority": "^0.7.1",

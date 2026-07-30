@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/session";
 import { listMembers, type MemberRow } from "@/server/admin/members";
+import { hasOnboarded } from "@/server/onboarding/onboarding";
 import { getWaitlistStats, listWaitlist } from "@/server/waitlist/queries";
 
 export const metadata: Metadata = {
@@ -94,10 +96,20 @@ function MemberTable({ rows }: { rows: MemberRow[] }) {
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.userId} className="border-b border-ink/10">
+            <tr
+              key={r.userId}
+              className="border-b border-ink/10 transition-colors hover:bg-paper"
+            >
               <td className="px-4 py-3">
-                <span className="block font-medium">{r.name}</span>
-                <span className="block text-xs text-ink-soft">{r.email}</span>
+                <Link
+                  href={`/dashboard/admin/members/${r.userId}`}
+                  className="group block"
+                >
+                  <span className="block font-medium underline-offset-4 group-hover:underline">
+                    {r.name}
+                  </span>
+                  <span className="block text-xs text-ink-soft">{r.email}</span>
+                </Link>
               </td>
               <td className="px-4 py-3">
                 <span
@@ -166,10 +178,11 @@ export default async function AdminPage() {
   if (!user) redirect("/sign-in");
   if (!user.isAdmin) redirect("/dashboard");
 
-  const [members, waitlistStats, waitlist] = await Promise.all([
+  const [members, waitlistStats, waitlist, isMember] = await Promise.all([
     listMembers(),
     getWaitlistStats(),
     listWaitlist(),
+    hasOnboarded(user.id),
   ]);
 
   const { stats } = members;
@@ -186,8 +199,32 @@ export default async function AdminPage() {
       </h1>
       <p className="mt-3 text-ink-soft">Signed in as {user.email}</p>
 
+      {/* Admin is an extension on top of a normal membership, not a separate
+          kind of account. An admin who hasn't joined as a member yet gets the
+          door here — this page is where an un-onboarded admin lands. */}
+      {!isMember && (
+        <p className="press mt-6 bg-card p-4 text-sm leading-relaxed">
+          You&apos;re an operator, not a member yet. Want to take part too —
+          practise or give an hour?{" "}
+          <Link
+            href="/onboarding"
+            className="font-medium text-vermilion-deep underline-offset-4 hover:underline"
+          >
+            Set up your member profile →
+          </Link>
+        </p>
+      )}
+
       <section className="mt-10">
-        <h2 className="stamp-label text-ink-soft">Members</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="stamp-label text-ink-soft">Members</h2>
+          <Link
+            href="/dashboard/admin/members"
+            className="stamp-label text-[0.6875rem] text-vermilion-deep underline-offset-4 hover:underline"
+          >
+            Full directory →
+          </Link>
+        </div>
         {/* Supply is the gate — bookable interviewers, not signups, is the
             number that decides whether booking can open. */}
         <dl className="mt-3 grid gap-px border border-ink/15 bg-ink/15 sm:grid-cols-2 lg:grid-cols-4">

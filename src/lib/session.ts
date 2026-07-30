@@ -11,6 +11,26 @@ export async function getCurrentSession() {
   return auth.api.getSession({ headers: await headers() });
 }
 
+/**
+ * Admin access is an ENV allowlist, not a database role.
+ *
+ * ADMIN_EMAILS is a comma-separated list; an email on it is an admin, anyone
+ * else is not, and an unset variable means NOBODY is — the safe failure. The
+ * email is trustworthy because it comes from Google OAuth, not from a form.
+ * Server-only by construction: this module never reaches the client bundle.
+ *
+ * The `admin` role string in Mongo is deliberately NOT consulted for panel
+ * access any more — one source of truth, editable without touching the DB.
+ * The role field stays for what actually needs it later (moderators, bans).
+ */
+function isAdminEmail(email: string): boolean {
+  return (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(email.trim().toLowerCase());
+}
+
 export type CurrentUser = {
   id: string;
   name: string;
@@ -32,7 +52,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     email: session.user.email,
     image: session.user.image,
     roles: parseRoles(role),
-    isAdmin: hasRole(role, "admin" as Role),
+    isAdmin: isAdminEmail(session.user.email),
     isInterviewer: hasRole(role, "interviewer" as Role),
   };
 }

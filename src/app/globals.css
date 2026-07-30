@@ -162,6 +162,7 @@
   --color-panel: var(--panel);
   --color-panel-fg: var(--panel-fg);
   --color-olive: var(--olive);
+  --color-lime: var(--lime);
   --color-rule: var(--rule);
 }
 
@@ -195,6 +196,13 @@
      using --ink turns it into a bright cream slab. */
   --press-shadow: oklch(0.185 0.012 76);
   --olive: oklch(0.435 0.062 148);
+  /* Photo plate on the interviewer card, and nowhere else yet.
+     The card is a printed object inside the site rather than a surface of it —
+     the portrait sits on a flat studio colour the way a real ID card's does,
+     and --olive (a dark seal green) reads as a shadow behind a face rather than
+     a backdrop. Defined as a token so the one place it appears is still
+     theme-aware and still swappable from here. */
+  --lime: oklch(0.885 0.185 125);
   --rule: oklch(0.185 0.012 76 / 0.16);
 
   --background: var(--paper);
@@ -229,6 +237,9 @@
   --panel-fg: oklch(0.936 0.014 84);
   --press-shadow: oklch(0.098 0.008 74);
   --olive: oklch(0.640 0.086 150);
+  /* Held back from full brightness: a card is a light object on a dark page
+     here, and the plate must not out-glow the ink beside it. */
+  --lime: oklch(0.815 0.170 126);
   --rule: oklch(0.936 0.014 84 / 0.18);
 
   --background: var(--paper);

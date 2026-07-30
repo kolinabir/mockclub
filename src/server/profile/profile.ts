@@ -207,6 +207,28 @@ export type ProfileDoc = {
   skills?: string[];
   yearsOfExperience?: number;
   currentRole?: { company: string; role: string; current: boolean };
+  /**
+   * Uploaded photo, as an object KEY in R2 — never a URL. See server/profile/
+   * photo.ts for why, and lib/photo.ts for turning one into something an
+   * <img> can use. Interviewers only.
+   */
+  photo?: { key: string; updatedAt: Date };
+  /**
+   * Opt-in to a public page at /i/[handle]. Absent means NO.
+   *
+   * Deliberately not derived from "is an interviewer with a finished profile".
+   * Everything else here is shown to one matched candidate; this puts a face, a
+   * job title and an employer on the open web, and that is a different decision
+   * — it has to be made, not inferred. See server/profile/public.ts.
+   */
+  publicProfile?: boolean;
+  /**
+   * The slug in /i/<handle>. Lowercase, unique.
+   *
+   * Absent until they publish — see server/profile/handle.ts for the rules and
+   * for why a public URL must not be an ObjectId.
+   */
+  handle?: string;
 };
 
 const TRACK_SLUGS = new Set([...TRACKS.map((t) => t.slug), OTHER_TRACK_SLUG]);
@@ -224,6 +246,16 @@ function profiles() {
     void c.createIndex({ userId: 1 }, { unique: true }).catch(() => {});
     // Booking will need "who can interview this discipline".
     void c.createIndex({ disciplines: 1 }).catch(() => {});
+    // The handle is a public URL, so uniqueness has to be the DATABASE's job —
+    // a read-then-write check loses the race between two people publishing at
+    // once. Partial, because most profiles have no handle and a plain unique
+    // index would let exactly one of them hold the `null`.
+    void c
+      .createIndex(
+        { handle: 1 },
+        { unique: true, partialFilterExpression: { handle: { $type: "string" } } },
+      )
+      .catch(() => {});
   }
   return c;
 }
@@ -239,6 +271,72 @@ function profiles() {
  */
 export async function getProfile(userId: string): Promise<ProfileDoc | null> {
   return profiles().findOne({ userId }, { projection: { _id: 0 } });
+}
+
+/**
+ * The public-page switch. Lives here because `profiles()` does — the collection
+ * handle stays private to this module, and every write to it is named.
+ *
+ * OFF is an `$unset`, not `false`: absent already means no everywhere that
+ * reads it, and it keeps the sitemap's `{ publicProfile: true }` filter working
+ * on an index rather than on a field full of falses.
+ */
+export async function setPublicProfile(
+  userId: string,
+  isPublic: boolean,
+): Promise<void> {
+  await profiles().updateOne(
+    { userId },
+    isPublic
+      ? { $set: { publicProfile: true, updatedAt: new Date() } }
+      : { $unset: { publicProfile: "" }, $set: { updatedAt: new Date() } },
+  );
+}
+
+/**
+ * Claim a handle for this member.
+ *
+ * `false` means SOMEONE ELSE HAS IT. The unique index is the real guarantee —
+ * checking first and then writing loses the race between two people publishing
+ * at the same moment — so the duplicate-key error is caught and turned into an
+ * answer rather than a 500. Same discipline as the booking writes in PLAN.md.
+ */
+export async function claimHandle(
+  userId: string,
+  handle: string,
+): Promise<boolean> {
+  try {
+    await profiles().updateOne(
+      { userId },
+      { $set: { handle, updatedAt: new Date() } },
+      { upsert: true },
+    );
+    return true;
+  } catch (err) {
+    if ((err as { code?: number }).code === 11000) return false;
+    throw err;
+  }
+}
+
+export async function findProfileByHandle(
+  handle: string,
+): Promise<ProfileDoc | null> {
+  return profiles().findOne({ handle }, { projection: { _id: 0 } });
+}
+
+/** Candidate list for the sitemap — the real gates are in profile/public.ts. */
+export async function listPublicProfileIds(
+  limit = 5000,
+): Promise<{ userId: string; updatedAt: Date }[]> {
+  const docs = await profiles()
+    .find(
+      // A public page with no handle has no URL, so it cannot be listed.
+      { publicProfile: true, handle: { $type: "string" } },
+      { projection: { _id: 0, userId: 1, updatedAt: 1 }, limit },
+    )
+    .toArray();
+
+  return docs.map((d) => ({ userId: d.userId, updatedAt: d.updatedAt }));
 }
 
 export async function saveProfile(
@@ -448,6 +546,11 @@ export function profileChecklist(
       key: "track",
       label: "Track and level",
       done: Boolean(profile?.trackSlug && profile?.level),
+    },
+    {
+      key: "photo",
+      label: "A professional photo",
+      done: Boolean(profile?.photo?.key),
     },
     ...shared,
     {

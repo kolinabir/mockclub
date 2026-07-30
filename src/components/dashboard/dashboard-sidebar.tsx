@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import {
   CalendarClock,
   CircleUser,
+  IdCard,
   LayoutDashboard,
   Shield,
+  Users,
 } from "lucide-react";
 
 import { GithubMark } from "@/components/github-mark";
@@ -46,13 +48,18 @@ export function DashboardSidebar({ user }: { user: SidebarUser }) {
     { href: "/dashboard/profile", label: "Profile", icon: CircleUser },
   ];
 
-  // Availability only means something for people who give hours.
+  // Availability and the card only mean something for people who give hours.
+  // A candidate who lands on /dashboard/card still gets the locked state and
+  // the one-click way out of it — it just isn't advertised in the nav.
   if (user.isInterviewer) {
-    main.push({
-      href: "/dashboard/availability",
-      label: "Availability",
-      icon: CalendarClock,
-    });
+    main.push(
+      { href: "/dashboard/card", label: "Card", icon: IdCard },
+      {
+        href: "/dashboard/availability",
+        label: "Availability",
+        icon: CalendarClock,
+      },
+    );
   }
 
   const initials =
@@ -115,7 +122,19 @@ export function DashboardSidebar({ user }: { user: SidebarUser }) {
                   >
                     <Link href="/dashboard/admin">
                       <Shield />
-                      <span>Admin</span>
+                      <span>Overview</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname.startsWith("/dashboard/admin/members")}
+                    tooltip="Members"
+                  >
+                    <Link href="/dashboard/admin/members">
+                      <Users />
+                      <span>Members</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
